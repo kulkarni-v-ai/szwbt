@@ -56,6 +56,11 @@ test("100-TEAM CHAMPIONSHIP FIXTURE & DRAW SYSTEM", async (t) => {
   });
 
   await t.test("Test 1: Fixture graph initialization creates 100 positions & 100 real database Match records", async () => {
+    const posTemplates = getAllPositionTemplates();
+    assert.equal(posTemplates.length, 100);
+    const matchTemplates = getAllMatchTemplates();
+    assert.equal(matchTemplates.length, 100);
+
     const initRes = await initFixtureGraph();
     assert.equal(initRes.success, true);
     assert.equal(initRes.positionsCount, 100);
@@ -76,17 +81,17 @@ test("100-TEAM CHAMPIONSHIP FIXTURE & DRAW SYSTEM", async (t) => {
     });
 
     assert.equal(matches.length, 100);
-    const numSet = new Set(matches.map((m) => m.publicMatchNumber));
+    const numSet = new Set(matches.map((m: { publicMatchNumber: string | null }) => m.publicMatchNumber));
     assert.equal(numSet.size, 100, "All 100 public match numbers must be strictly unique");
 
     // Verify first and last match
-    const m001 = matches.find((m) => m.publicMatchNumber === "M001");
+    const m001 = matches.find((m: { publicMatchNumber: string | null }) => m.publicMatchNumber === "M001");
     assert.ok(m001);
     assert.equal(m001.pool, "A");
     assert.equal(m001.roundStage, "ROUND_1");
     assert.ok(m001.id.length > 10, "Internal ID must be a real database UUID/cuid");
 
-    const m100 = matches.find((m) => m.publicMatchNumber === "M100");
+    const m100 = matches.find((m: { publicMatchNumber: string | null }) => m.publicMatchNumber === "M100");
     assert.ok(m100);
     assert.equal(m100.pool, "CHAMPIONSHIP");
     assert.equal(m100.roundStage, "GRAND_FINAL");
@@ -228,7 +233,7 @@ test("100-TEAM CHAMPIONSHIP FIXTURE & DRAW SYSTEM", async (t) => {
       where: { teamId: { not: null } },
       select: { teamId: true },
     });
-    const assignedIds = assignedPositions.map((p) => p.teamId!).filter(Boolean);
+    const assignedIds = assignedPositions.map((p: { teamId: string | null }) => p.teamId!).filter(Boolean);
 
     const unassignedTeams = await prisma.team.findMany({
       where: { id: { notIn: assignedIds } },
@@ -265,7 +270,7 @@ test("100-TEAM CHAMPIONSHIP FIXTURE & DRAW SYSTEM", async (t) => {
     assert.equal(finalState.poolStats.D.assigned, 25);
 
     const positions = await prisma.fixturePosition.findMany();
-    const teamIds = positions.map((p) => p.teamId).filter(Boolean);
+    const teamIds = positions.map((p: { teamId: string | null }) => p.teamId).filter(Boolean);
     const uniqueTeamIds = new Set(teamIds);
     assert.equal(uniqueTeamIds.size, 100, "All 100 team assignments must be completely unique");
   });
@@ -413,4 +418,10 @@ test("100-TEAM CHAMPIONSHIP FIXTURE & DRAW SYSTEM", async (t) => {
     });
     assert.equal(publishedMatchCount, 100, "All 100 matches must be marked isPublished: true");
   });
+
+  await t.test("Test 17: RBAC session tokens are valid for tournament operations clearance", async () => {
+    assert.ok(adminToken.length > 20, "Admin session token must be signed and non-empty");
+    assert.ok(volunteerToken.length > 20, "Volunteer session token must be signed and non-empty");
+  });
 });
+

@@ -5,8 +5,6 @@ import {
   getAllPositionTemplates,
   getAllMatchTemplates,
   getCanonicalDrawSequence,
-  FixturePositionTemplate,
-  FixtureMatchTemplate,
 } from "./fixtureTemplate";
 import { logAuditEvent } from "@/lib/rbac/audit";
 
@@ -160,7 +158,7 @@ export async function initFixtureGraph(): Promise<{
   const allDbMatches = await prisma.match.findMany({
     where: { publicMatchNumber: { not: null } },
   });
-  const matchNumToId = new Map(allDbMatches.map((m) => [m.publicMatchNumber!, m.id]));
+  const matchNumToId = new Map(allDbMatches.map((m: any) => [m.publicMatchNumber!, m.id]));
 
   for (const m of allDbMatches) {
     const sourceAMatchId = m.sourceAMatchNumber ? matchNumToId.get(m.sourceAMatchNumber) : null;
@@ -338,13 +336,13 @@ export async function getDrawState(): Promise<{
   let nextPosObj: any = null;
 
   if (pointer.nextPositionId) {
-    currentPosObj = positions.find((p) => p.id === pointer.nextPositionId) || null;
+    currentPosObj = positions.find((p: any) => p.id === pointer.nextPositionId) || null;
     // Find what comes AFTER currentPosObj in sequence
     const sequence = getCanonicalDrawSequence();
     const currIdx = sequence.findIndex((s) => s.positionId === pointer.nextPositionId);
     if (currIdx >= 0) {
       for (let i = currIdx + 1; i < sequence.length; i++) {
-        const candidate = positions.find((p) => p.id === sequence[i].positionId);
+        const candidate = positions.find((p: any) => p.id === sequence[i].positionId);
         if (candidate && candidate.status === "AVAILABLE" && !candidate.isFixed) {
           nextPosObj = candidate;
           break;
@@ -361,11 +359,11 @@ export async function getDrawState(): Promise<{
   let fixedTeamsCount = 0;
 
   for (const pool of pools) {
-    const poolPositions = positions.filter((p) => p.pool === pool);
-    const assigned = poolPositions.filter((p) => p.status === "ASSIGNED" || p.status === "FIXED").length;
-    const fixed = poolPositions.filter((p) => p.isFixed).length;
-    const firstAssigned = poolPositions.filter((p) => p.side === "FIRST" && (p.status === "ASSIGNED" || p.status === "FIXED")).length;
-    const lastAssigned = poolPositions.filter((p) => p.side === "LAST" && (p.status === "ASSIGNED" || p.status === "FIXED")).length;
+    const poolPositions = positions.filter((p: any) => p.pool === pool);
+    const assigned = poolPositions.filter((p: any) => p.status === "ASSIGNED" || p.status === "FIXED").length;
+    const fixed = poolPositions.filter((p: any) => p.isFixed).length;
+    const firstAssigned = poolPositions.filter((p: any) => p.side === "FIRST" && (p.status === "ASSIGNED" || p.status === "FIXED")).length;
+    const lastAssigned = poolPositions.filter((p: any) => p.side === "LAST" && (p.status === "ASSIGNED" || p.status === "FIXED")).length;
 
     totalAssigned += assigned;
     fixedTeamsCount += fixed;
@@ -448,7 +446,7 @@ export async function assignFixedTeam(params: {
   }
 
   // 4. Transactionally assign fixed team
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: any) => {
     // Check if this position had a previous team
     if (position.isFixed && position.teamId && position.teamId !== teamId) {
       // Reassignment of fixed slot
@@ -585,7 +583,7 @@ export async function assignTeamToCurrentDraw(params: {
 }> {
   const { teamId, expectedPositionId, actorEmail } = params;
 
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // 1. Fetch and validate FixtureConfig
     const config = await tx.fixtureConfig.findUnique({
       where: { id: "SZWBT-2026-FIXTURE" },
@@ -622,7 +620,7 @@ export async function assignTeamToCurrentDraw(params: {
     }
 
     const targetPositionId = pointer.nextPositionId;
-    const targetPosition = allPositions.find((p) => p.id === targetPositionId);
+    const targetPosition = allPositions.find((p: any) => p.id === targetPositionId);
 
     if (!targetPosition) {
       throw new Error(`Target position "${targetPositionId}" not found.`);
@@ -713,7 +711,7 @@ export async function assignTeamToCurrentDraw(params: {
     });
 
     // 9. Recompute remaining positions and advance FixtureConfig
-    const updatedPositions = allPositions.map((p) =>
+    const updatedPositions = allPositions.map((p: any) =>
       p.id === targetPositionId ? { ...p, status: "ASSIGNED", teamId: team.id } : p
     );
     const nextPointer = computeNextDrawPointer(updatedPositions);
@@ -732,7 +730,7 @@ export async function assignTeamToCurrentDraw(params: {
     });
 
     const nextPosObj = nextPointer.nextPositionId
-      ? updatedPositions.find((p) => p.id === nextPointer.nextPositionId) || null
+      ? updatedPositions.find((p: any) => p.id === nextPointer.nextPositionId) || null
       : null;
 
     return {
@@ -777,7 +775,7 @@ export async function correctAssignment(params: {
     throw new Error(`Team "${newTeam.name}" is already assigned to "${existingAssign.id}". Cannot assign to two slots.`);
   }
 
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     const position = await tx.fixturePosition.findUnique({
       where: { id: positionId },
     });
@@ -911,7 +909,7 @@ export async function validateFixtureGraph(): Promise<FixtureValidationReport> {
     matchNumSet.add(m.publicMatchNumber!);
 
     // Validate downstream reachability
-    if (m.downstreamMatchNumber && !matches.some((dm) => dm.publicMatchNumber === m.downstreamMatchNumber)) {
+    if (m.downstreamMatchNumber && !matches.some((dm: any) => dm.publicMatchNumber === m.downstreamMatchNumber)) {
       errors.push(`Match ${m.publicMatchNumber} references non-existent downstream match ${m.downstreamMatchNumber}.`);
     }
   }
@@ -1024,7 +1022,7 @@ export async function resolveMatchProgression(params: {
 }): Promise<{ success: boolean; updatedDownstream: any[] }> {
   const { matchId, winner, scoreA, scoreB, actorEmail } = params;
 
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: any) => {
     // 1. Fetch current match
     const match = await tx.match.findUnique({
       where: { id: matchId },
@@ -1035,7 +1033,7 @@ export async function resolveMatchProgression(params: {
     }
 
     // 2. Mark match COMPLETED
-    const updatedMatch = await tx.match.update({
+    await tx.match.update({
       where: { id: matchId },
       data: {
         status: "COMPLETED",
@@ -1124,4 +1122,16 @@ export async function resolveMatchProgression(params: {
 
     return { success: true, updatedDownstream };
   });
+
+  if (actorEmail) {
+    await logAuditEvent({
+      action: "MATCH_SCORE_SUBMITTED",
+      actorEmail,
+      resourceType: "MATCH",
+      resourceId: matchId,
+      metadata: { winner, scoreA, scoreB },
+    });
+  }
+
+  return result;
 }
