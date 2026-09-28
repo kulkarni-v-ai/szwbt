@@ -1,0 +1,13 @@
+Hostel,Floor,Room_Number,Bed_Number,Capacity,Bed_Status,Occupant_Name,Occupant_ID
+Shalmala Hostel,Ground Floor,G-01,BED 01,5,OCCUPIED,Ananya Sharma,SZWBT26-P-000101
+Shalmala Hostel,Ground Floor,G-01,BED 02,5,OCCUPIED,Priya Kulkarni,SZWBT26-P-000102
+Shalmala Hostel,Ground Floor,G-01,BED 03,5,OCCUPIED,Divya Naik,SZWBT26-P-000103
+Shalmala Hostel,Ground Floor,G-01,BED 04,5,OCCUPIED,Sneha Joshi,SZWBT26-P-000104
+Shalmala Hostel,Ground Floor,G-01,BED 05,5,OCCUPIED,Tanvi Deshpande,SZWBT26-P-000105
+Shalmala Hostel,Ground Floor,G-02,BED 01,5,OCCUPIED,Deepika Rao,SZWBT26-P-000106
+Shalmala Hostel,Ground Floor,G-02,BED 02,5,OCCUPIED,Aarthi S,SZWBT26-P-000107
+Shalmala Hostel,Ground Floor,G-02,BED 03,5,AVAILABLE,None,None
+Shalmala Hostel,Ground Floor,G-02,BED 04,5,AVAILABLE,None,None
+Shalmala Hostel,Ground Floor,G-02,BED 05,5,AVAILABLE,None,None
+Vindhya Boys Hostel,Ground Floor,101,BED 01,5,OCCUPIED,Dr. Suresh Patil,SZWBT26-M-00001
+Vindhya Boys Hostel,Ground Floor,101,BED 02,5,AVAILABLE,None,None

@@ -1,0 +1,1166 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TOURNAMENT DAYS & LIVE MATCHES
+// ═══════════════════════════════════════════════════════════════════
+
+model TournamentDay {
+  id          String   @id // "OCT18", "OCT19", "OCT20", "OCT21"
+  date        String   // "OCT 18"
+  dayNumber   String   // "Day 1"
+  stage       String   // "Round 1", "Round 2 & QF", "Semi-Finals", "Grand Finals"
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  matches     Match[]
+
+  @@map("tournament_days")
+}
+
+model Match {
+  id                 String        @id @default(cuid())
+  dayId              String
+  day                TournamentDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  time               String        // "09:00 IST"
+  category           String        // "Women's Singles", "Women's Doubles", "Institution Teams"
+  court              String        // "Court 01"
+  matchNumber        String        // "R1 - Match 1"
+  playerA            String
+  institutionA       String
+  playerB            String
+  institutionB       String
+  scoreA             String?       // Current total or sets string
+  scoreB             String?
+  status             String        @default("UPCOMING") // "LIVE", "UPCOMING", "COMPLETED", "PAUSED"
+  winner             String?       // "PLAYER_A" | "PLAYER_B"
+  assignedOfficialId String?
+  interruptionReason String?       // "Medical", "Court issue", "Equipment issue", "Other"
+  interruptionNotes  String?
+  isPublished        Boolean       @default(false)
+  actualStartTime    DateTime?
+  actualEndTime      DateTime?
+  scheduledStartTime DateTime?
+  events             MatchEvent[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([dayId])
+  @@index([status])
+  @@map("matches")
+}
+
+model MatchEvent {
+  id         String   @id @default(cuid())
+  matchId    String
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  pointTo    String   // "PLAYER_A" | "PLAYER_B"
+  scoreA     Int
+  scoreB     Int
+  setNumber  Int      @default(1)
+  eventType  String   // "POINT", "SET_WON", "MATCH_WON", "UNDO", "PAUSE", "RESUME"
+  officialId String?
+  timestamp  DateTime @default(now())
+
+  @@index([matchId])
+  @@map("match_events")
+}
+
+model Court {
+  id          String   @id @default(cuid())
+  courtNumber String   @unique // "Court 01", "Court 02", etc.
+  status      String   @default("READY") // "LIVE", "READY", "BREAK", "DELAYED"
+  venue       String?  @default("KLE Tech Indoor Stadium")
+  notes       String?
+  isActive    Boolean  @default(true)
+  umpire      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("courts")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTHENTICATED USERS & RBAC ARCHITECTURE
+// ═══════════════════════════════════════════════════════════════════
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  name          String
+  passwordHash  String
+  badge         String?
+  targetUrl     String?     @default("/dashboard")
+  isActive      Boolean     @default(true)
+  phone         String?
+  institution   String?
+  state         String?
+  sessionVersion Int        @default(1)
+  lastLoginAt   DateTime?
+  participantId String?     // Linked participant record for ownership checks
+  teamId        String?     // Linked team record for team manager scope
+  officialId    String?     // Linked official ID for match assignment scope
+  userRoles            UserRole[]
+  auditLogs            AuditLog[]
+  sessions             UserSession[]
+  preference           UserPreference?
+  volunteerAssignments VolunteerAssignment[]
+  volunteerTasks       VolunteerTask[]
+  volunteerShifts      VolunteerShift[]
+  volunteerIssues      VolunteerIssue[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@map("users")
+}
+
+model Role {
+  id              String           @id @default(cuid())
+  name            String           @unique // "SUPER_ADMIN", "TOURNAMENT_ADMIN", "REGISTRATION_STAFF", etc.
+  displayName     String
+  description     String?
+  isSystem        Boolean          @default(false)
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  code            String           @unique // "registration:read", "document:upload", etc.
+  resource        String           // "registration", "participant", "team", "document", "accommodation", "transport", "payment", "finance", "match", "scoring", "result", "announcement", "reports", "users", "roles", "audit", "system"
+  action          String           // "read", "create", "update", "delete", "allocate", "move", "vacate", "boarding", "refund", "report", "assign_official", "submit", "publish", "export", "disable", "assign", "configure"
+  description     String?
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Official {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  role        String   // "SUPER_ADMIN", "REGISTRATION_ADMIN", "ACCOMMODATION_ADMIN", "TRANSPORT_ADMIN", "FINANCE_ADMIN", "MATCH_OFFICIAL", etc.
+  badge       String   // "LEVEL 04 ROOT", "BWF TECHNICAL", "UNIVERSITY DESK", etc.
+  password    String
+  targetUrl   String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("officials")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PARTICIPANTS, TEAMS & CAPTURED DOCUMENTS
+// ═══════════════════════════════════════════════════════════════════
+
+model Participant {
+  id                 String                     @id @default(cuid())
+  playerId           String                     @unique // "SZWBT26-P-000124"
+  name               String
+  email              String?
+  phone              String?
+  institution        String
+  institutionId      String?                    // FK to Institution master (null for legacy records)
+  institutionRef     Institution?               @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  state              String                     // Configurable state dropdown
+  category           String                     // "Women's Singles", "Women's Doubles", "Institution Teams"
+  gender             String?                    @default("FEMALE") // "FEMALE", "MALE"
+  status             String                     @default("PENDING") // "APPROVED", "PENDING", "REJECTED"
+  photoUrl           String?                    // Private object storage reference for participant photo
+  hostel             String?
+  room               String?
+  qrCode             String?
+  teamMemberships    TeamMember[]
+  documents          Document[]
+  bedAllocations     AccommodationAllocation[]
+  transportBookings  TransportPassenger[]
+  paymentLedgers     FeeLedger[]
+  qrPasses           QrPass[]
+  foodAssignments    FoodPackageAssignment[]
+  foodConsumptions   FoodConsumption[]
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  @@index([institutionId])
+  @@map("participants")
+}
+
+model Team {
+  id                 String                     @id @default(cuid())
+  teamCode           String                     @unique // "TM-SZ-001"
+  name               String
+  institution        String
+  state              String
+  managerName        String?
+  managerPhone       String?
+  captainName        String?
+  captainPhone       String?
+  status             String                     @default("INCOMPLETE") // "INCOMPLETE", "PENDING_VERIFICATION", "COMPLETED"
+  teamQrToken        String?                    @unique // Encrypted/Secure Token for QR pass
+  members            TeamMember[]
+  bedAllocations     AccommodationAllocation[]
+  transportBookings  TransportPassenger[]
+  paymentLedgers     FeeLedger[]
+  qrPasses           QrPass[]
+  foodAssignments    FoodPackageAssignment[]
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id            String      @id @default(cuid())
+  teamId        String
+  team          Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  role          String      @default("PLAYER") // "PLAYER", "CAPTAIN", "MANAGER", "SUPPORT"
+  createdAt     DateTime    @default(now())
+
+  @@unique([teamId, participantId])
+  @@map("team_members")
+}
+
+model Document {
+  id              String      @id @default(cuid())
+  participantId   String
+  participant     Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  type            String      // "UNIVERSITY_ID", "SSLC", "PUC", "OTHER"
+  fileName        String
+  filePath        String
+  fileSize        Int?
+  mimeType        String?     @default("application/pdf")
+  status          String      @default("PENDING") // "PENDING", "VERIFIED", "REJECTED"
+  compiledPdfPath String?
+  capturedBy      String?     // Staff email
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("documents")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ACCOMMODATION (DYNAMIC CONFIGURATION ARCHITECTURE)
+// ═══════════════════════════════════════════════════════════════════
+
+model Hostel {
+  id            String   @id @default(cuid())
+  name          String   // e.g. "Shalmala Hostel", "Vindhya Boys Hostel"
+  code          String?  @unique // e.g. "SHALMALA", "VINDHYA"
+  description   String?
+  status        String   @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  genderAllowed String?  @default("ANY") // "FEMALE", "MALE", "ANY"
+  totalFloors   Int      @default(4)
+  floors        Floor[]
+  rooms         Room[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("hostels")
+}
+
+model Floor {
+  id          String   @id @default(cuid())
+  hostelId    String
+  hostel      Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  name        String   // "Ground Floor", "First Floor", "North Wing", etc.
+  floorNumber Int      @default(0) // Sort order
+  status      String   @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  rooms       Room[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([hostelId, name])
+  @@index([hostelId])
+  @@map("floors")
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  hostelId    String
+  hostel      Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  floorId     String?
+  floor       Floor?   @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  floorNumber String?  @default("GROUND FLOOR") // Legacy / display fallback string
+  roomNumber  String   // Authoritative room identifier: e.g. "101", "G-001", "A-102"
+  displayName String?
+  capacity    Int      @default(5) // Configurable bed capacity
+  status      String   @default("ACTIVE") // "ACTIVE", "INACTIVE", "MAINTENANCE"
+  beds        Bed[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([hostelId, roomNumber])
+  @@index([hostelId])
+  @@index([floorId])
+  @@map("rooms")
+}
+
+model Bed {
+  id          String                    @id @default(cuid())
+  roomId      String
+  room        Room                      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  bedNumber   String                    // e.g. "BED 01", "BED 02", "1", "2"
+  displayName String?
+  status      String                    @default("AVAILABLE") // "AVAILABLE", "OCCUPIED", "RESERVED", "MAINTENANCE", "INACTIVE"
+  allocations AccommodationAllocation[]
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@unique([roomId, bedNumber])
+  @@index([roomId])
+  @@index([status])
+  @@map("beds")
+}
+
+model AccommodationAllocation {
+  id            String       @id @default(cuid())
+  bedId         String
+  bed           Bed          @relation(fields: [bedId], references: [id], onDelete: Cascade)
+  participantId String?
+  participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  teamId        String?
+  team          Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  checkInDate   DateTime     @default(now())
+  checkOutDate  DateTime?
+  allocatedBy   String?      // Staff operator email
+  status        String       @default("ACTIVE") // "ACTIVE", "VACATED"
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([bedId])
+  @@index([participantId])
+  @@index([teamId])
+  @@index([status])
+  @@map("accommodation_allocations")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TRANSPORTATION & FLEET LOGISTICS (UNIVERSITY-PROVIDED — FREE OPERATIONAL)
+// ═══════════════════════════════════════════════════════════════════
+
+model TransportRoute {
+  id               String          @id @default(cuid())
+  name             String          // "Route 01: Airport Express"
+  code             String          @unique // "RT-01"
+  origin           String          // "Hubballi Airport (HBX)"
+  destination      String          // "KLE Tech Arena / Hostels"
+  estimatedMinutes Int             @default(30)
+  status           String          @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  stops            TransportStop[]
+  trips            TransportTrip[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("transport_routes")
+}
+
+model TransportStop {
+  id               String         @id @default(cuid())
+  routeId          String
+  route            TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  name             String         // "Terminal 1 Gate 2", "Shalmala Hostel", "Main Arena East Gate"
+  orderIndex       Int            @default(0)
+  expectedMinutes  Int            @default(10) // Minutes offset from origin
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([routeId])
+  @@map("transport_stops")
+}
+
+model TransportVehicle {
+  id                 String          @id @default(cuid())
+  registrationNumber String          @unique // "KA-25-EA-9021"
+  type               String          // "AC_BUS", "SHUTTLE_BUS", "MINI_VAN", "ELECTRIC_SHUTTLE"
+  capacity           Int             // Real physical capacity strictly derived from vehicle
+  status             String          @default("AVAILABLE") // "AVAILABLE", "ASSIGNED", "IN_SERVICE", "MAINTENANCE", "OUT_OF_SERVICE"
+  makeModel          String?         // "Tata Starbus 45-Seater", "Force Traveller 18-Seater"
+  trips              TransportTrip[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@map("transport_vehicles")
+}
+
+model TransportDriver {
+  id            String          @id @default(cuid())
+  name          String          // "Manjunath K"
+  driverCode    String          @unique // "DRV-01"
+  phone         String          // "+91 94812 34567"
+  licenseNumber String          // "KA-25-2018-004912"
+  status        String          @default("AVAILABLE") // "AVAILABLE", "ASSIGNED", "OFF_DUTY", "UNAVAILABLE"
+  trips         TransportTrip[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@map("transport_drivers")
+}
+
+model TransportTrip {
+  id               String               @id @default(cuid())
+  tripCode         String               @unique // "TRIP-SZ-001"
+  scheduledDate    String               @default("2026-10-18") // "2026-10-18"
+  scheduledTime    String               // "08:30 IST"
+  estimatedArrival String?              // "09:15 IST"
+  routeId          String?
+  route            TransportRoute?      @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  vehicleId        String?
+  vehicle          TransportVehicle?    @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  driverId         String?
+  driver           TransportDriver?     @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  routeName        String?              // Denormalized fallback
+  vehicleNo        String?              // Denormalized fallback
+  driverName       String?              // Denormalized fallback
+  driverPhone      String?              // Denormalized fallback
+  pickupPoint      String?              // Denormalized fallback
+  dropPoint        String?              // Denormalized fallback
+  status           String               @default("SCHEDULED") // "SCHEDULED", "BOARDING", "DEPARTED", "IN_TRANSIT", "ARRIVED", "DELAYED", "CANCELLED"
+  delayMinutes     Int                  @default(0)
+  capacity         Int                  @default(32) // Derived from vehicle capacity
+  passengers       TransportPassenger[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([routeId])
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("transport_trips")
+}
+
+model TransportPassenger {
+  id             String         @id @default(cuid())
+  tripId         String
+  trip           TransportTrip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  participantId  String?
+  participant    Participant?   @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  teamId         String?
+  team           Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  pickupPoint    String?        // Designated pickup stop
+  dropPoint      String?        // Designated drop stop
+  boardingStatus String         @default("PENDING") // "PENDING", "BOARDED", "NO_SHOW"
+  boardedAt      DateTime?
+  boardedBy      String?        // Staff operator email
+  isOverride     Boolean        @default(false)
+  overrideReason String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([tripId, participantId])
+  @@index([tripId])
+  @@index([participantId])
+  @@index([boardingStatus])
+  @@map("transport_passengers")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FINANCIAL LEDGERS & SEPARATE PAYMENT TRANSACTIONS
+// ═══════════════════════════════════════════════════════════════════
+
+model PaymentTransaction {
+  id            String   @id @default(cuid())
+  category      String   // "REGISTRATION", "ACCOMMODATION", "SHUTTLE", "MATCH"
+  entityType    String   // "PARTICIPANT", "TEAM", "GENERAL"
+  entityId      String?  // Reference ID
+  amount        Float
+  method        String   // "CASH", "UPI"
+  utr           String?  // Mandatory for UPI, unique
+  internalTxnId String   @unique @default(cuid())
+  operatorEmail String   // Staff email recording transaction
+  receiptNumber String?
+  status        String   @default("SUCCESS") // "SUCCESS", "REFUNDED", "PENDING"
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([category])
+  @@index([method])
+  @@index([utr])
+  @@map("payment_transactions")
+}
+
+model FeeLedger {
+  id            String       @id @default(cuid())
+  category      String       // "REGISTRATION", "ACCOMMODATION", "SHUTTLE", "MATCH"
+  entityType    String       // "PARTICIPANT", "TEAM"
+  participantId String?
+  participant   Participant? @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  teamId        String?
+  team          Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  amountDue     Float        @default(0)
+  amountPaid    Float        @default(0)
+  balance       Float        @default(0)
+  status        String       @default("UNPAID") // "UNPAID", "PARTIALLY_PAID", "PAID", "OVERPAID"
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([category, participantId])
+  @@unique([category, teamId])
+  @@map("fee_ledgers")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ANNOUNCEMENTS & SYSTEM AUDIT LOGGING
+// ═══════════════════════════════════════════════════════════════════
+
+model Announcement {
+  id              String                 @id @default(cuid())
+  title           String
+  content         String
+  category        String                 @default("GENERAL") // "GENERAL", "TOURNAMENT", "MATCH", "REGISTRATION", "ACCOMMODATION", "TRANSPORT", "VENUE", "VOLUNTEER", "STAFF", "SAFETY", "EMERGENCY", "OTHER"
+  priority        String                 @default("NORMAL")  // "LOW", "NORMAL", "HIGH", "URGENT", "EMERGENCY"
+  targetAudience  String                 @default("ALL")     // "ALL", "PARTICIPANTS", "TEAMS", "OFFICIALS", "VOLUNTEERS", "OPERATIONS_STAFF", "REGISTRATION_STAFF", "ACCOMMODATION_STAFF", "TRANSPORT_STAFF", "ORGANIZERS", "AUTHORIZED_STAFF"
+  channels        String                 @default("IN_APP")  // e.g. "IN_APP", "IN_APP,EMAIL", "IN_APP,SMS"
+  status          String                 @default("PUBLISHED") // "DRAFT", "SCHEDULED", "PUBLISHED", "CANCELLED", "EXPIRED"
+  isPublished     Boolean                @default(true)
+  scheduledFor    DateTime?
+  publishedAt     DateTime?
+  expiresAt       DateTime?
+  authorEmail     String
+  authorName      String?
+  relatedResource String?                // Resource targeting: "team:TM-SZ-001", "court:Court 01", etc.
+  deliveryStatus  String                 @default("SENT")    // "PENDING", "SENT", "DELIVERED", "FAILED", "CANCELLED"
+  failureReason   String?
+  retryCount      Int                    @default(0)
+  recipientCount  Int                    @default(0)
+  deliveries      NotificationDelivery[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([targetAudience])
+  @@index([scheduledFor])
+  @@map("announcements")
+}
+
+model NotificationDelivery {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  channel        String       // "IN_APP", "EMAIL", "SMS", "PUSH"
+  recipient      String       // Email, phone number, or target audience group
+  status         String       @default("PENDING") // "PENDING", "SENT", "DELIVERED", "FAILED", "BOUNCED", "CANCELLED"
+  errorMessage   String?
+  attemptCount   Int          @default(0)
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([announcementId])
+  @@index([status])
+  @@index([channel])
+  @@map("notification_deliveries")
+}
+
+model CommunicationTemplate {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  code         String   @unique // "MATCH_UPDATE", "VENUE_CHANGE", "TRANSPORT_ALERT", etc.
+  category     String   @default("GENERAL")
+  priority     String   @default("NORMAL")
+  audience     String   @default("ALL")
+  channels     String   @default("IN_APP")
+  subject      String
+  bodyTemplate String
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("communication_templates")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String?
+  actorUser    User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorEmail   String
+  action       String   // "USER_LOGIN", "ROLE_ASSIGNED", "ROLE_REMOVED", "PARTICIPANT_CREATED", "ACCOMMODATION_ALLOCATED", "SCORE_UPDATED", etc.
+  resourceType String   // "registration", "participant", "team", "document", "payment", "accommodation", "match", "role", "user", etc.
+  resourceId   String?
+  requestId    String?
+  metadata     String?  // JSON string (sanitized, no secrets)
+  timestamp    DateTime @default(now())
+
+  @@index([actorEmail])
+  @@index([action])
+  @@index([resourceType])
+  @@map("audit_logs")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// VOLUNTEER OPERATIONS & ON-GROUND FIELD LOGISTICS
+// ═══════════════════════════════════════════════════════════════════
+
+model VolunteerShift {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String    @default("NOT_STARTED") // "NOT_STARTED", "ON_SHIFT", "BREAK", "COMPLETED", "ABSENT", "CANCELLED"
+  startedAt DateTime?
+  endedAt   DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("volunteer_shifts")
+}
+
+model VolunteerAssignment {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  venue           String
+  area            String
+  reportingPoint  String
+  shiftStart      String
+  shiftEnd        String
+  date            String
+  supervisor      String
+  supervisorPhone String?
+  status          String          @default("ASSIGNED") // "ASSIGNED", "ACTIVE", "COMPLETED", "CANCELLED"
+  instructions    String
+  tasks           VolunteerTask[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("volunteer_assignments")
+}
+
+model VolunteerTask {
+  id                String               @id @default(cuid())
+  userId            String
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignmentId      String?
+  assignment        VolunteerAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  title             String
+  description       String
+  location          String
+  priority          String               @default("NORMAL") // "LOW", "NORMAL", "HIGH", "URGENT"
+  dueTime           String
+  scheduledTime     String?
+  status            String               @default("ASSIGNED") // "ASSIGNED", "IN_PROGRESS", "BLOCKED", "COMPLETED", "CANCELLED"
+  category          String               @default("VENUE") // "PARTICIPANT", "VENUE", "EQUIPMENT", "COURT", "TRANSPORT", "CROWD"
+  instructions      String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  blockedReason     String?
+  supervisor        String?
+  createdById       String?
+  assignedStaffName String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@map("volunteer_tasks")
+}
+
+model VolunteerIssue {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String   @default("Incident Report")
+  severity           String   @default("MEDIUM") // "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  category           String   // "VENUE", "PARTICIPANT", "ACCOMMODATION", "TRANSPORT", "MATCH", "EQUIPMENT", "SAFETY", "TECHNICAL", "OTHER"
+  priority           String   @default("NORMAL") // "LOW", "NORMAL", "HIGH", "URGENT"
+  location           String
+  description        String
+  reporterEmail      String?
+  relatedParticipant String?
+  relatedTeam        String?
+  relatedMatch       String?
+  relatedTask        String?
+  status             String   @default("OPEN") // "OPEN", "ACKNOWLEDGED", "ASSIGNED", "IN_PROGRESS", "ESCALATED", "RESOLVED", "CLOSED"
+  assignedResponder  String?
+  latestUpdate       String?
+  escalatedTo        String?  // "Supervisor", "Organizer", "Operations", etc.
+  resolutionNotes    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([severity])
+  @@map("volunteer_issues")
+}
+
+model VenueArea {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String   // "COURT", "DESK", "ENTRANCE", "HOSTEL", "TRANSPORT", "MEDICAL", "SPECTATOR"
+  status    String   @default("READY") // "READY", "ACTIVE", "ATTENTION", "ISSUE", "CLOSED"
+  location  String
+  inCharge  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("venue_areas")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SUPPORT / HELP DESK WORKSPACE & ESCALATION TICKETING
+// ═══════════════════════════════════════════════════════════════════
+
+model SupportTicket {
+  id                  String              @id @default(cuid())
+  ticketNumber        String              @unique // "TKT-2026-001"
+  subject             String
+  description         String
+  requesterEmail      String
+  requesterName       String?
+  requesterType       String              @default("PARTICIPANT") // "PARTICIPANT", "TEAM_MANAGER", "STAFF", "VOLUNTEER", "OFFICIAL", "ORGANIZER"
+  category            String              // "REGISTRATION", "DOCUMENTS", "ACCOMMODATION", "TRANSPORT", "MATCHES", "RESULTS", "TEAM", "PARTICIPANT", "PAYMENT", "TECHNICAL", "GENERAL", "OTHER"
+  subcategory         String?
+  priority            String              @default("NORMAL") // "LOW", "NORMAL", "HIGH", "URGENT"
+  status              String              @default("OPEN") // "OPEN", "ASSIGNED", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "ESCALATED", "RESOLVED", "CLOSED"
+  assignedAgentEmail  String?
+  assignedAgentName   String?
+  relatedResourceType String?             // "PARTICIPANT", "TEAM", "REGISTRATION", "ACCOMMODATION", "TRANSPORT", "MATCH"
+  relatedResourceId   String?             // "P-001", "TM-SZ-001", "Court 01", etc.
+  resolutionNotes     String?
+  resolvedAt          DateTime?
+  closedAt            DateTime?
+  messages            SupportMessage[]
+  escalations         SupportEscalation[]
+  attachments         SupportAttachment[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([requesterEmail])
+  @@index([assignedAgentEmail])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id          String        @id @default(cuid())
+  ticketId    String
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderEmail String
+  senderName  String
+  senderType  String        // "REQUESTER", "SUPPORT_AGENT", "SYSTEM"
+  messageType String        @default("PUBLIC") // "PUBLIC", "INTERNAL_NOTE"
+  content     String
+  createdAt   DateTime      @default(now())
+
+  @@index([ticketId])
+  @@index([messageType])
+  @@map("support_messages")
+}
+
+model SupportEscalation {
+  id               String        @id @default(cuid())
+  ticketId         String
+  ticket           SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  targetDepartment String        // "REGISTRATION", "ACCOMMODATION", "TRANSPORT", "FINANCE", "MATCH_OPERATIONS", "TOURNAMENT_ADMIN", "SYSTEM_ADMIN"
+  escalationReason String
+  priority         String        @default("HIGH") // "LOW", "NORMAL", "HIGH", "URGENT"
+  escalatedBy      String        // staff email
+  status           String        @default("OPEN") // "OPEN", "ACKNOWLEDGED", "IN_PROGRESS", "RESOLVED", "CLOSED"
+  resolutionNotes  String?
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([ticketId])
+  @@index([targetDepartment])
+  @@index([status])
+  @@map("support_escalations")
+}
+
+model SupportAttachment {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fileName   String
+  filePath   String
+  fileSize   Int?
+  mimeType   String?
+  uploadedBy String
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId])
+  @@map("support_attachments")
+}
+
+model SupportKnowledgeArticle {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  category    String   // "REGISTRATION", "ACCOMMODATION", "TRANSPORT", "MATCHES", "PAYMENT", "TECHNICAL", "GENERAL"
+  content     String
+  isPublished Boolean  @default(true)
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isPublished])
+  @@map("support_knowledge_articles")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REPORTS & ANALYTICS SAVED CONFIGURATIONS & EXPORT AUDITING
+// ═══════════════════════════════════════════════════════════════════
+
+model SavedReport {
+  id          String   @id @default(cuid())
+  name        String
+  reportType  String   // "REGISTRATION", "PARTICIPANTS", "TEAMS", "ACCOMMODATION", "TRANSPORT", "FINANCE", "MATCHES", "RESULTS", "OPERATIONS", "SUPPORT", "COMMUNICATIONS", "AUDIT"
+  filters     String   @default("{}") // Serialized JSON filters
+  columns     String?  // Serialized JSON visible columns array
+  sort        String?  // Serialized JSON sort { field, order }
+  ownerEmail  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerEmail])
+  @@index([reportType])
+  @@map("saved_reports")
+}
+
+model ReportExportLog {
+  id          String   @id @default(cuid())
+  reportType  String   // "REGISTRATION", "PARTICIPANTS", "TEAMS", "ACCOMMODATION", "TRANSPORT", "FINANCE", "MATCHES", "RESULTS", "OPERATIONS", "SUPPORT", "COMMUNICATIONS", "AUDIT"
+  format      String   // "CSV" | "JSON"
+  actorEmail  String
+  filters     String?  // Serialized JSON filters
+  recordCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([actorEmail])
+  @@index([reportType])
+  @@map("report_export_logs")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SYSTEM SETTINGS & RUNTIME ADMINISTRATIVE CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   // Serialized JSON value or string
+  category    String   @default("GENERAL") // "GENERAL", "TOURNAMENT", "REGISTRATION", "ACCOMMODATION", "NOTIFICATIONS", "SECURITY"
+  description String?
+  isPublic    Boolean  @default(false)
+  updatedBy   String?  // Staff/Admin email
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("system_settings")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INSTITUTION / UNIVERSITY MASTER DATA (CSV-MANAGED BY SUPER ADMIN)
+// ═══════════════════════════════════════════════════════════════════
+
+model Institution {
+  id              String        @id @default(cuid())
+  institutionCode String        @unique // "KAR001", "KER001", etc.
+  name            String        // "KLE Technological University"
+  state           String        // "Karnataka"
+  city            String?       // "Hubballi"
+  district        String?       // "Dharwad"
+  status          String        @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  participants    Participant[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([name, state])
+  @@index([state])
+  @@index([status])
+  @@map("institutions")
+}
+
+model InstitutionImport {
+  id             String   @id @default(cuid())
+  fileName       String
+  uploadedBy     String   // Super Admin email
+  mode           String   @default("UPSERT") // "UPSERT", "REPLACE"
+  totalRows      Int      @default(0)
+  createdCount   Int      @default(0)
+  updatedCount   Int      @default(0)
+  skippedCount   Int      @default(0)
+  failedCount    Int      @default(0)
+  status         String   @default("PENDING") // "PENDING", "VALIDATING", "PREVIEWING", "IMPORTING", "COMPLETED", "COMPLETED_WITH_ERRORS", "FAILED"
+  errorReport    String?  // JSON array of row errors
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([uploadedBy])
+  @@index([status])
+  @@map("institution_imports")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TOURNAMENT ADMINISTRATION: CATEGORIES, EVENTS, ROUNDS & MILESTONES
+// ═══════════════════════════════════════════════════════════════════
+
+model TournamentCategory {
+  id          String            @id @default(cuid())
+  name        String            // "Women's Singles", "Women's Doubles", "Institution Teams"
+  code        String            @unique // "WS", "WD", "TEAM"
+  description String?
+  status      String            @default("ACTIVE") // "ACTIVE", "ARCHIVED", "DRAFT"
+  format      String            @default("KNOCKOUT") // "KNOCKOUT", "LEAGUE", "HYBRID"
+  eligibility String?           // "Female bona fide students from recognized South Zone universities"
+  events      TournamentEvent[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("tournament_categories")
+}
+
+model TournamentEvent {
+  id           String             @id @default(cuid())
+  categoryId   String
+  category     TournamentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name         String             // "Women's Singles Championship"
+  code         String             @unique // "WS_MAIN"
+  status       String             @default("OPEN") // "DRAFT", "OPEN", "LOCKED", "SCHEDULED", "LIVE", "COMPLETED", "ARCHIVED"
+  format       String             @default("KNOCKOUT")
+  maxEntries   Int?               @default(64)
+  seedCount    Int?               @default(8)
+  rounds       TournamentRound[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([categoryId])
+  @@map("tournament_events")
+}
+
+model TournamentRound {
+  id         String          @id @default(cuid())
+  eventId    String
+  event      TournamentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name       String          // "Round of 64", "Round of 32", "Round of 16", "Quarter-Finals", "Semi-Finals", "Finals"
+  code       String          // "R64", "R32", "R16", "QF", "SF", "FINAL"
+  sequence   Int             @default(1)
+  status     String          @default("PENDING") // "PENDING", "SCHEDULED", "IN_PROGRESS", "COMPLETED"
+  matchCount Int             @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([eventId])
+  @@map("tournament_rounds")
+}
+
+model TournamentMilestone {
+  id          String    @id @default(cuid())
+  title       String    // "Official Team Registration Opens"
+  category    String    // "REGISTRATION", "LOGISTICS", "TECHNICAL", "CEREMONY", "COMPETITION"
+  targetDate  DateTime
+  completedAt DateTime?
+  status      String    @default("PENDING") // "COMPLETED", "IN_PROGRESS", "PENDING", "DELAYED"
+  description String?
+  sequence    Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("tournament_milestones")
+}
+
+model ScheduleLock {
+  id        String    @id @default("CURRENT_SCHEDULE_LOCK")
+  isLocked  Boolean   @default(false)
+  lockedBy  String?
+  lockedAt  DateTime?
+  reason    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("schedule_locks")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// USER PREFERENCES & NOTIFICATION SETTINGS (SELF-SERVICE)
+// ═══════════════════════════════════════════════════════════════════
+
+model UserPreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournamentAnnounce    Boolean  @default(true) // OPTIONAL
+  matchUpdates          Boolean  @default(true) // OPTIONAL
+  accommodationUpdates  Boolean  @default(true) // OPTIONAL
+  transportUpdates      Boolean  @default(true) // OPTIONAL
+  supportUpdates        Boolean  @default(true) // OPTIONAL
+  systemNotifications   Boolean  @default(true) // REQUIRED / MANDATORY (Cannot be turned off)
+  channelInApp          Boolean  @default(true) // Active channel
+  channelEmail          Boolean  @default(true) // Active channel
+  channelSms            Boolean  @default(false) // Not configured
+  channelPush           Boolean  @default(false) // Not configured
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// USER ACTIVE SESSIONS (SELF-SERVICE SESSION MANAGEMENT)
+// ═══════════════════════════════════════════════════════════════════
+
+model UserSession {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String    @unique
+  device       String    // e.g. "Desktop (Windows 11)", "Mobile (iPhone / iOS 17)"
+  browser      String    // e.g. "Chrome 128.0", "Safari Mobile"
+  ipAddress    String?   // e.g. "127.0.0.1", "10.245.236.227"
+  location     String?   @default("Hubballi, Karnataka, IN")
+  isCurrent    Boolean   @default(false)
+  lastActiveAt DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// OFFICIAL QR ACCESS PASSES (SECURE OPAQUE TOKENS & REGENERATION)
+// ═══════════════════════════════════════════════════════════════════
+
+model QrPass {
+  id            String       @id @default(cuid())
+  token         String       @unique // Secure opaque reference/token (e.g. sz26_qr_part_<cuid>)
+  qrType        String       // "PARTICIPANT" | "TEAM"
+  status        String       @default("ACTIVE") // "ACTIVE", "REVOKED"
+  participantId String?
+  participant   Participant? @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  teamId        String?
+  team          Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy     String?      // Staff email
+  revokedAt     DateTime?
+  revokedReason String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([token])
+  @@index([participantId])
+  @@index([teamId])
+  @@index([status])
+  @@map("qr_passes")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FOOD PACKAGE MANAGEMENT (DAILY BUNDLED PACKAGE: BREAKFAST+LUNCH+SNACKS+DINNER)
+// ═══════════════════════════════════════════════════════════════════
+
+model FoodPackage {
+  id          String                  @id @default(cuid())
+  date        String                  // e.g. "OCT 18", "2026-10-18"
+  dayNumber   String                  // "Day 1", "Day 2", etc.
+  name        String                  // "Day 1 Championship Food Package"
+  components  String                  @default("Breakfast, Lunch, Evening Snacks, Dinner")
+  status      String                  @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  assignments FoodPackageAssignment[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@unique([date])
+  @@map("food_packages")
+}
+
+model FoodPackageAssignment {
+  id            String       @id @default(cuid())
+  packageId     String
+  foodPackage   FoodPackage  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant  @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  teamId        String?
+  team          Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  assignedBy    String       // Staff operator email
+  status        String       @default("ASSIGNED") // "ASSIGNED", "CANCELLED", "COMPLETED"
+  notes         String?
+  assignedAt    DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([packageId, participantId])
+  @@index([packageId])
+  @@index([participantId])
+  @@index([status])
+  @@map("food_package_assignments")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FOOD MESS OPERATIONS & DAILY MEAL CONSUMPTION
+// ═══════════════════════════════════════════════════════════════════
+
+model FoodConsumption {
+  id            String      @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  date          String      // Calendar day (e.g. "2026-09-27")
+  mealType      String      // "BREAKFAST", "LUNCH", "SNACKS", "DINNER"
+  status        String      @default("USED") // "USED", "CANCELLED"
+  servedAt      DateTime    @default(now())
+  servedBy      String      // Staff email
+  counterName   String?     @default("Main Mess Counter")
+  paymentStatus String?     @default("EXEMPT") // "PAID", "EXEMPT", "FREE"
+  paymentMethod String?     // "CASH", "UPI"
+  utr           String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([participantId, date, mealType])
+  @@index([participantId])
+  @@index([date, mealType])
+  @@index([servedAt])
+  @@map("food_consumptions")
+}

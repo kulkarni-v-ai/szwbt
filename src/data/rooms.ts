@@ -5,6 +5,6 @@ export interface RoomItem {
   roomNumber: string;
   hostelId: "SHALMALA" | "VINDHYA";
   floor: "GROUND FLOOR" | "FLOOR 01" | "FLOOR 02";
-  capacity: 4; // ALWAYS 4 BEDS
+  capacity: 5; // EXACTLY 5 BEDS PER ROOM
   beds: BedItem[];
 }

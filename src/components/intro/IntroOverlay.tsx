@@ -9,7 +9,7 @@ interface IntroOverlayProps {
   currentScene: number; // 1 to 8
   onSetScene: (scene: number) => void;
   onSkipIntro: () => void;
-  onEnterArena: () => void;
+  onEnter: () => void;
 }
 
 export const SCENE_METADATA = [
@@ -27,7 +27,7 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({
   currentScene,
   onSetScene,
   onSkipIntro,
-  onEnterArena,
+  onEnter,
 }) => {
   const isFinalScene = currentScene === 8;
   const currentMeta = SCENE_METADATA[currentScene - 1] || SCENE_METADATA[0];
@@ -78,7 +78,7 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({
 
           <h1 className="font-display text-3xl sm:text-5xl md:text-6xl text-pixel-cream font-extrabold tracking-tight text-pixel-glow leading-tight">
             SOUTH ZONE <br />
-            <span className="text-pixel-orange-fiery">BADMINTON</span> CHAMPIONSHIP 2026
+            <span className="text-pixel-orange-fiery">WOMEN&apos;S BADMINTON</span> CHAMPIONSHIP 2026
           </h1>
 
           <p className="font-pixel text-xs sm:text-sm text-pixel-amber tracking-widest">
@@ -86,8 +86,8 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
-            <PixelButton variant="primary" size="lg" glow onClick={onEnterArena}>
-              <span>ENTER THE ARENA</span>
+            <PixelButton variant="primary" size="lg" glow onClick={onEnter}>
+              <span>EXPLORE TOURNAMENT</span>
               <ChevronRight className="w-4 h-4" />
             </PixelButton>
 

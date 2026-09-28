@@ -13,17 +13,17 @@ export interface TournamentInfo {
 }
 
 export const TOURNAMENT_DATA: TournamentInfo = {
-  name: "SOUTH ZONE WOMEN'S BADMINTON TOURNAMENT 2026",
+  name: "SOUTH ZONE WOMEN'S BADMINTON CHAMPIONSHIP 2026",
   edition: "2026 EDITION",
   tagline: "THE SOUTH CONVERGES. THE COURT DECIDES.",
-  dates: "COMING SOON",
-  venue: "CENTRAL ARENA — SOUTH ZONE",
-  organizer: "SOUTH ZONE BADMINTON FEDERATION",
+  dates: "OCTOBER 18 – 21, 2026",
+  venue: "Dr. Prabhakar Kore Sports Arena , K L E Tech University - Hubballi",
+  organizer: "SOUTH ZONE WOMEN'S BADMINTON FEDERATION",
   status: "REGISTRATION OPEN",
-  totalCategories: "8 CATEGORIES",
-  totalParticipants: "128 PLAYERS",
-  totalMatches: "64 MATCHES",
-  activeCourts: "8 COURTS",
+  totalCategories: "5 CATEGORIES",
+  totalParticipants: "1000+ PARTICIPANTS",
+  totalMatches: "128 MATCHES",
+  activeCourts: "4 COURTS",
 };
 
 export interface CategoryItem {
@@ -37,21 +37,24 @@ export interface CategoryItem {
 }
 
 export const CATEGORIES_DATA: CategoryItem[] = [
-  { id: "cat-1", code: "MS-U19", name: "Men's Singles U-19", type: "Singles", eligibility: "COMING SOON", fee: "₹ —— CONFIGURABLE", maxEntries: "32" },
-  { id: "cat-2", code: "WS-U19", name: "Women's Singles U-19", type: "Singles", eligibility: "COMING SOON", fee: "₹ —— CONFIGURABLE", maxEntries: "32" },
-  { id: "cat-3", code: "MD-U19", name: "Men's Doubles U-19", type: "Doubles", eligibility: "COMING SOON", fee: "₹ —— CONFIGURABLE", maxEntries: "16 Teams" },
-  { id: "cat-4", code: "WD-U19", name: "Women's Doubles U-19", type: "Doubles", eligibility: "COMING SOON", fee: "₹ —— CONFIGURABLE", maxEntries: "16 Teams" },
-  { id: "cat-5", code: "XD-U19", name: "Mixed Doubles U-19", type: "Doubles", eligibility: "COMING SOON", fee: "₹ —— CONFIGURABLE", maxEntries: "16 Teams" },
-  { id: "cat-6", code: "MS-SENIOR", name: "Men's Singles Open", type: "Singles", eligibility: "COMING SOON", fee: "₹ —— CONFIGURABLE", maxEntries: "64" },
-  { id: "cat-7", code: "WS-SENIOR", name: "Women's Singles Open", type: "Singles", eligibility: "COMING SOON", fee: "₹ —— CONFIGURABLE", maxEntries: "64" },
-  { id: "cat-8", code: "MD-SENIOR", name: "Men's Doubles Open", type: "Doubles", eligibility: "COMING SOON", fee: "₹ —— CONFIGURABLE", maxEntries: "32 Teams" },
+  { id: "cat-1", code: "WS-U19", name: "Women's Singles U-19", type: "Singles", eligibility: "FEMALE ATHLETES U-19", fee: "₹ 1,200", maxEntries: "64 Entries" },
+  { id: "cat-2", code: "WD-U19", name: "Women's Doubles U-19", type: "Doubles", eligibility: "FEMALE PAIRS U-19", fee: "₹ 2,000", maxEntries: "32 Teams" },
+  { id: "cat-3", code: "WS-OPEN", name: "Women's Singles Open", type: "Singles", eligibility: "FEMALE ATHLETES OPEN", fee: "₹ 1,500", maxEntries: "64 Entries" },
+  { id: "cat-4", code: "WD-OPEN", name: "Women's Doubles Open", type: "Doubles", eligibility: "FEMALE PAIRS OPEN", fee: "₹ 2,500", maxEntries: "32 Teams" },
+  { id: "cat-5", code: "TEAM-INST", name: "Institution Teams", type: "Team", eligibility: "COLLEGE / UNIVERSITY TEAMS", fee: "₹ 5,000", maxEntries: "32 Institutions" },
 ];
 
 export const VENUE_DETAILS_DATA = {
-  name: "CENTRAL BADMINTON ARENA",
-  city: "SOUTH ZONE",
-  state: "SOUTHERN REGION",
-  courtsCount: 8,
-  facilities: ["ARCADE HUD DISPLAY", "LIVE SATELLITE FEED", "ACCOMMODATION SHUTTLE", "PLAYER LOUNGE"],
-  policyNote: "Official rules and guidelines are subject to final publication."
+  name: "Dr. Prabhakar Kore Sports Arena , K L E Tech University",
+  city: "HUBBALLI",
+  state: "KARNATAKA",
+  courtsCount: 4,
+  facilities: [
+    "4 BWF-APPROVED SYNTHETIC COURTS",
+    "ARCADE HUD SCOREBOARDS",
+    "PLAYER RECOVERY & PHYSIO ZONE",
+    "SHALMALA & VINDHYA ATHLETE RESIDENCES",
+    "SPECTATOR SEATING (600 CAP)",
+  ],
+  policyNote: "Official championship rules ratified by South Zone Badminton Association. BWF scoring system (best of 3 games to 21 points)."
 };

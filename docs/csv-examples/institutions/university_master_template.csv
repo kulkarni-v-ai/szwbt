@@ -1,0 +1,21 @@
+institution_code,university_name,state,city,district,status
+KAR001,KLE Technological University,Karnataka,Hubballi,Dharwad,ACTIVE
+KAR002,Visvesvaraya Technological University,Karnataka,Belagavi,Belagavi,ACTIVE
+KAR003,Bangalore University,Karnataka,Bengaluru,Bengaluru Urban,ACTIVE
+KAR004,University of Mysore,Karnataka,Mysuru,Mysuru,ACTIVE
+KAR005,Mangalore University,Karnataka,Mangaluru,Dakshina Kannada,ACTIVE
+TAM001,Anna University,Tamil Nadu,Chennai,Chennai,ACTIVE
+TAM002,University of Madras,Tamil Nadu,Chennai,Chennai,ACTIVE
+TAM003,Bharathiar University,Tamil Nadu,Coimbatore,Coimbatore,ACTIVE
+TAM004,Madurai Kamaraj University,Tamil Nadu,Madurai,Madurai,ACTIVE
+KER001,University of Kerala,Kerala,Thiruvananthapuram,Thiruvananthapuram,ACTIVE
+KER002,Mahatma Gandhi University,Kerala,Kottayam,Kottayam,ACTIVE
+KER003,University of Calicut,Kerala,Malappuram,Malappuram,ACTIVE
+KER004,Cochin University of Science and Technology,Kerala,Kochi,Ernakulam,ACTIVE
+AND001,Andhra University,Andhra Pradesh,Visakhapatnam,Visakhapatnam,ACTIVE
+AND002,Sri Venkateswara University,Andhra Pradesh,Tirupati,Tirupati,ACTIVE
+AND003,Acharya Nagarjuna University,Andhra Pradesh,Guntur,Guntur,ACTIVE
+TEL001,Osmania University,Telangana,Hyderabad,Hyderabad,ACTIVE
+TEL002,Kakatiya University,Telangana,Warangal,Hanamkonda,ACTIVE
+TEL003,Jawaharlal Nehru Technological University Hyderabad,Telangana,Hyderabad,Hyderabad,ACTIVE
+PON001,Pondicherry University,Puducherry,Puducherry,Puducherry,ACTIVE

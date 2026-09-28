@@ -133,7 +133,7 @@ export const PixelCourt: React.FC = () => {
       </div>
 
       {/* Live Match Scoreboard under Court */}
-      <PixelScoreboard match={MATCHES_DATA[0]} />
+      {MATCHES_DATA.length > 0 && <PixelScoreboard match={MATCHES_DATA[0]} />}
     </div>
   );
 };

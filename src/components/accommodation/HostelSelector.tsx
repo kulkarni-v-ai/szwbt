@@ -1,68 +1,156 @@
 "use client";
 
 import React from "react";
-import { HOSTELS_DATA, HostelDetails } from "@/data/accommodation";
-import { PixelCard } from "@/components/pixel/PixelCard";
-import { PixelBadge } from "@/components/pixel/PixelBadge";
-import { Home, Users, CheckCircle2 } from "lucide-react";
+import { Home, Key, Building2, ShieldCheck, Users } from "lucide-react";
+
+export interface DynamicHostelItem {
+  id: string;
+  name: string;
+  code: string;
+  genderAllowed?: string;
+  totalFloors: number;
+  totalRooms: number;
+  totalBeds: number;
+  occupiedBeds: number;
+  availableBeds: number;
+  occupancyPercent?: number;
+}
+
+interface HostelStatData {
+  total: number;
+  occupied: number;
+  available: number;
+  ratePercent?: number;
+}
 
 interface HostelSelectorProps {
-  selectedHostelId: "SHALMALA" | "VINDHYA";
-  onSelectHostel: (id: "SHALMALA" | "VINDHYA") => void;
-  shalmalaStats: { total: number; occupied: number; available: number };
-  vindhyaStats: { total: number; occupied: number; available: number };
+  selectedHostelId: string;
+  onSelectHostel: (id: string) => void;
+  hostels?: DynamicHostelItem[];
+  shalmalaStats?: HostelStatData;
+  vindhyaStats?: HostelStatData;
 }
 
 export const HostelSelector: React.FC<HostelSelectorProps> = ({
   selectedHostelId,
   onSelectHostel,
-  shalmalaStats,
-  vindhyaStats,
+  hostels = [],
+  shalmalaStats = { total: 0, occupied: 0, available: 0 },
+  vindhyaStats = { total: 0, occupied: 0, available: 0 },
 }) => {
+  // If dynamic hostels are available from backend, render them dynamically
+  const displayHostels =
+    hostels.length > 0
+      ? hostels
+      : [
+          {
+            id: "SHALMALA",
+            name: "SHALMALA HOSTEL",
+            code: "SHALMALA",
+            genderAllowed: "FEMALE",
+            totalFloors: 3,
+            totalRooms: 12,
+            totalBeds: shalmalaStats.total,
+            occupiedBeds: shalmalaStats.occupied,
+            availableBeds: shalmalaStats.available,
+            occupancyPercent: shalmalaStats.ratePercent,
+          },
+          {
+            id: "VINDHYA",
+            name: "VINDHYA BOYS HOSTEL",
+            code: "VINDHYA",
+            genderAllowed: "MALE",
+            totalFloors: 2,
+            totalRooms: 8,
+            totalBeds: vindhyaStats.total,
+            occupiedBeds: vindhyaStats.occupied,
+            availableBeds: vindhyaStats.available,
+            occupancyPercent: vindhyaStats.ratePercent,
+          },
+        ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-      {HOSTELS_DATA.map((h) => {
-        const isSelected = selectedHostelId === h.id;
-        const stats = h.id === "SHALMALA" ? shalmalaStats : vindhyaStats;
+    <div className={`grid grid-cols-1 md:grid-cols-${Math.min(displayHostels.length, 3)} gap-4 mb-6`}>
+      {displayHostels.map((h) => {
+        const isSelected = selectedHostelId === h.id || selectedHostelId === h.code;
+        const isWomen = h.genderAllowed === "FEMALE";
+        const isMen = h.genderAllowed === "MALE";
 
         return (
           <div
             key={h.id}
             onClick={() => onSelectHostel(h.id)}
-            className="cursor-pointer"
+            className={`p-4 sm:p-5 rounded-2xl transition-all cursor-pointer flex flex-col justify-between ${
+              isSelected
+                ? "bg-orange-50/30 border-2 border-[#FF5A16] shadow-sm"
+                : "bg-white border-2 border-slate-200 hover:border-slate-300 shadow-xs"
+            }`}
           >
-            <PixelCard
-              headerTitle={h.name}
-              headerBadge={h.id}
-              glow={isSelected}
-              className={isSelected ? "border-pixel-orange-fiery bg-pixel-brown/40" : "hover:border-pixel-gray-600"}
-            >
-              <div className="flex flex-col gap-2 my-2 font-sans text-xs">
-                <p className="text-pixel-gray-300 font-medium">{h.targetAudience}</p>
-
-                <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-pixel-gray-800 text-center font-pixel text-[10px]">
-                  <div className="bg-pixel-black p-2 border border-pixel-gray-800">
-                    <span className="block text-pixel-gray-400">TOTAL BEDS</span>
-                    <span className="text-pixel-cream text-xs">{stats.total}</span>
-                  </div>
-                  <div className="bg-pixel-black p-2 border border-pixel-gray-800">
-                    <span className="block text-pixel-orange-bright">OCCUPIED</span>
-                    <span className="text-pixel-orange-bright text-xs">{stats.occupied}</span>
-                  </div>
-                  <div className="bg-pixel-black p-2 border border-pixel-gray-800">
-                    <span className="block text-pixel-green">AVAILABLE</span>
-                    <span className="text-pixel-green text-xs">{stats.available}</span>
-                  </div>
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    isSelected
+                      ? "bg-orange-100 text-[#FF5A16] border border-orange-300"
+                      : "bg-slate-100 text-slate-600 border border-slate-200"
+                  }`}
+                >
+                  {isWomen ? <Home className="w-5 h-5" /> : isMen ? <Key className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
                 </div>
-
-                <div className="flex items-center justify-between mt-2 pt-1 text-[10px] font-pixel">
-                  <span className="text-pixel-amber">FLOORS: {h.floors.length}</span>
-                  <PixelBadge variant={isSelected ? "orange" : "dark"}>
-                    {isSelected ? "● SELECTED HOSTEL" : "CLICK TO SELECT"}
-                  </PixelBadge>
+                <div>
+                  <h3 className="font-pixel text-sm sm:text-base text-slate-900 font-bold tracking-wider">
+                    {h.name.toUpperCase()}
+                  </h3>
+                  <span
+                    className={`font-pixel text-[8px] uppercase tracking-widest block font-medium ${
+                      isWomen ? "text-orange-600" : isMen ? "text-indigo-600" : "text-slate-500"
+                    }`}
+                  >
+                    {isWomen
+                      ? "WOMEN ATHLETES & FEMALE OFFICIALS"
+                      : isMen
+                      ? "MALE TEAM MANAGERS & SUPPORT STAFF"
+                      : "GENERAL ACCOMMODATION WING"}
+                  </span>
                 </div>
               </div>
-            </PixelCard>
+
+              <span
+                className={`font-pixel text-[8px] px-2 py-0.5 rounded border ${
+                  isSelected
+                    ? "bg-[#FF5A16] text-white border-orange-600 font-bold shadow-xs"
+                    : "bg-slate-100 text-slate-600 border-slate-200"
+                }`}
+              >
+                {isSelected ? "● SELECTED" : "SELECT"}
+              </span>
+            </div>
+
+            <p className="font-sans text-xs text-slate-500 mb-4 leading-relaxed">
+              {h.totalFloors} Floors • {h.totalRooms} Rooms configured.
+            </p>
+
+            {/* Dynamic Occupancy Strip */}
+            <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-pixel text-center">
+              <div>
+                <span className="text-[8px] text-slate-500 uppercase block font-medium">TOTAL BEDS</span>
+                <span className="text-xs sm:text-sm text-slate-900 font-bold">
+                  {h.totalBeds !== undefined ? h.totalBeds : "—"}
+                </span>
+              </div>
+              <div>
+                <span className="text-[8px] text-slate-500 uppercase block font-medium">OCCUPIED</span>
+                <span className="text-xs sm:text-sm text-amber-600 font-bold">
+                  {h.occupiedBeds !== undefined ? h.occupiedBeds : "—"}
+                </span>
+              </div>
+              <div>
+                <span className="text-[8px] text-slate-500 uppercase block font-medium">AVAILABLE</span>
+                <span className="text-xs sm:text-sm text-emerald-600 font-bold">
+                  {h.availableBeds !== undefined ? h.availableBeds : "—"}
+                </span>
+              </div>
+            </div>
           </div>
         );
       })}

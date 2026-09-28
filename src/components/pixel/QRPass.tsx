@@ -17,12 +17,12 @@ interface QRPassProps {
 
 export const QRPass: React.FC<QRPassProps> = ({
   playerData = {
-    name: "PLAYER A (DEMO)",
-    playerId: "SZ-2026-001",
-    institution: "INSTITUTION ALPHA (DEMO)",
-    category: "MS-U19 SINGLES",
-    status: "APPROVED / VERIFIED",
-    qrCode: "QR-SZ2026-DEMO-001",
+    name: "ACCREDITED ATHLETE",
+    playerId: "SZ-2026-PENDING",
+    institution: "AFFILIATED UNIVERSITY",
+    category: "WOMEN'S BADMINTON",
+    status: "ACCREDITED",
+    qrCode: "SZ26-ACCREDITATION-PASS",
   },
 }) => {
   return (

@@ -1,0 +1,4 @@
+Ticket_Number,Subject,Requester,Requester_Type,Category,Priority,Status,Assigned_Agent,Created_At,Resolved_At
+TKT-2026-001,Hostel Bed Assignment Clarification,Dr. Suresh Patil,TEAM_MANAGER,ACCOMMODATION,NORMAL,RESOLVED,Dr. Anand K,2026-10-17,2026-10-17
+TKT-2026-002,Shuttle Bus Timing for Evening Session,Ananya Sharma,PARTICIPANT,TRANSPORT,LOW,RESOLVED,Transport Desk,2026-10-17,2026-10-17
+TKT-2026-003,Court 03 Taraflex Surface Inspection,Anita Rao,OFFICIAL,MATCHES,HIGH,RESOLVED,Court Tech Lead,2026-10-18,2026-10-18

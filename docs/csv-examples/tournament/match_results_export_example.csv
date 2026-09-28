@@ -1,0 +1,7 @@
+Match_Number,Tournament_Day,Scheduled_Time,Court,Category,Player_A,Institution_A,Player_B,Institution_B,Score,Winner,Status,Published
+R1-M01,Day 1,09:00 IST,Court 01,Women's Singles,Ananya Sharma,KLE Technological University,Pooja Hegde,Bangalore University,21-18, 21-16,PLAYER_A,COMPLETED,YES
+R1-M02,Day 1,09:30 IST,Court 02,Women's Singles,Deepika Rao,Anna University,Kavya Nair,University of Kerala,21-14, 19-21, 21-17,PLAYER_A,COMPLETED,YES
+R1-M03,Day 1,10:00 IST,Court 03,Women's Singles,Meera Sundaram,University of Madras,Sneha Patil,University of Mysore,18-21, 21-15, 21-19,PLAYER_A,COMPLETED,YES
+R1-M04,Day 1,10:30 IST,Court 04,Women's Singles,Ritu Varma,Osmania University,Lakshmi Priya,Andhra University,21-12, 21-10,PLAYER_A,COMPLETED,YES
+QF-M01,Day 2,14:00 IST,Court 01,Women's Singles,Ananya Sharma,KLE Technological University,Deepika Rao,Anna University,21-19, 22-20,PLAYER_A,COMPLETED,YES
+SF-M01,Day 3,10:00 IST,Court 01,Women's Singles,Ananya Sharma,KLE Technological University,Meera Sundaram,University of Madras,TBD,N/A,READY,YES

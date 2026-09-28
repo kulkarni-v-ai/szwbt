@@ -5,12 +5,12 @@ import React, { useEffect, useRef, useState } from "react";
 interface IntroCanvasProps {
   currentScene: number; // 1 to 8
   onSceneComplete?: () => void;
-  onEnterArena?: () => void;
+  onEnter?: () => void;
 }
 
 export const IntroCanvas: React.FC<IntroCanvasProps> = ({
   currentScene,
-  onEnterArena,
+  onEnter,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mouseRef = useRef({ x: 0, y: 0 });

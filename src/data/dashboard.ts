@@ -11,7 +11,7 @@ export const ROLE_MATRIX: RoleInfo[] = [
   { roleId: "super_admin", roleName: "Super Admin", path: "/admin", badge: "COMMAND CENTER", description: "Global System Overview & Operations Control", icon: "ShieldAlert" },
   { roleId: "tournament_admin", roleName: "Tournament Admin", path: "/admin/tournament", badge: "MATCH CONTROL", description: "Fixtures, Draws, Court Schedules & Match Officiating", icon: "Trophy" },
   { roleId: "registration_admin", roleName: "Registration Admin", path: "/admin/registrations", badge: "VERIFICATION", description: "Player Verification, Document Approvals & Registrations", icon: "UserCheck" },
-  { roleId: "accommodation_admin", roleName: "Accommodation Admin", path: "/admin/accommodation", badge: "HOSTEL LOGISTICS", description: "Shalmala & Vindhya Hostels, 4-Bed Room Allocation", icon: "Home" },
+  { roleId: "accommodation_admin", roleName: "Accommodation Admin", path: "/admin/accommodation", badge: "HOSTEL LOGISTICS", description: "Shalmala & Vindhya Hostels, 5-Bed Room Allocation", icon: "Home" },
   { roleId: "transport_admin", roleName: "Transport Admin", path: "/admin/transport", badge: "FLEET CONTROL", description: "Shuttle Routes, Vehicle Tracking & Passenger Manifests", icon: "Bus" },
   { roleId: "finance_admin", roleName: "Finance Admin", path: "/admin/finance", badge: "TREASURY", description: "Payment Logs, Invoices & Fee Status Summaries", icon: "CreditCard" },
   { roleId: "organizer", roleName: "Organizer", path: "/organizer", badge: "EXECUTIVE HUD", description: "High-level Tournament Analytics & Cross-dept Overview", icon: "Briefcase" },

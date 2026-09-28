@@ -23,7 +23,7 @@ export const PixelTabs: React.FC<PixelTabsProps> = ({
   className,
 }) => {
   return (
-    <div className={clsx("flex flex-wrap gap-2 border-b-2 border-pixel-gray-800 pb-2", className)}>
+    <div className={clsx("inline-flex flex-wrap p-1 bg-slate-100/90 rounded-xl border border-slate-200 gap-1", className)}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -31,20 +31,20 @@ export const PixelTabs: React.FC<PixelTabsProps> = ({
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={clsx(
-              "font-pixel text-[10px] sm:text-xs px-4 py-2 border-2 uppercase transition-all duration-100 cursor-pointer flex items-center gap-2 select-none",
+              "text-xs px-4 py-2 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-2 select-none",
               isActive
-                ? "bg-pixel-orange-fiery text-black border-black shadow-pixel-sm font-bold -translate-y-0.5"
-                : "bg-pixel-dark text-pixel-gray-400 border-pixel-gray-800 hover:border-pixel-orange-fiery hover:text-pixel-cream"
+                ? "bg-white text-slate-900 shadow-xs font-semibold border border-slate-200/80"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-medium"
             )}
           >
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span
                 className={clsx(
-                  "px-1.5 py-0.2 text-[9px] border",
+                  "px-2 py-0.5 text-[10px] font-semibold rounded-full",
                   isActive
-                    ? "bg-black text-pixel-orange-bright border-black"
-                    : "bg-pixel-gray-800 text-pixel-gray-400 border-pixel-gray-700"
+                    ? "bg-orange-50 text-orange-700 border border-orange-200"
+                    : "bg-slate-200/70 text-slate-600"
                 )}
               >
                 {tab.count}

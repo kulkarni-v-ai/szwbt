@@ -3,8 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, Menu, X, Shield } from "lucide-react";
-import { PixelButton } from "@/components/pixel/PixelButton";
+import { Menu, X } from "lucide-react";
 import { MobileArcadeMenu } from "./MobileArcadeMenu";
 
 export const PUBLIC_NAV_ITEMS = [
@@ -18,70 +17,85 @@ export const PUBLIC_NAV_ITEMS = [
   { label: "CONTACT", path: "/contact" },
 ];
 
+function ShuttlecockLogo({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 28 32" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Feathers Fan */}
+      <path
+        d="M6 14 L14 30 L22 14 Z"
+        fill="#FFFFFF"
+        stroke="#0F172A"
+        strokeWidth="0.8"
+      />
+      {/* Feather Ribs */}
+      <line x1="9" y1="16" x2="14" y2="29" stroke="#040711" strokeWidth="0.8" opacity="0.6" />
+      <line x1="14" y1="15" x2="14" y2="29" stroke="#040711" strokeWidth="0.8" opacity="0.6" />
+      <line x1="19" y1="16" x2="14" y2="29" stroke="#040711" strokeWidth="0.8" opacity="0.6" />
+      {/* Feather Binding Thread Lines */}
+      <path d="M8.5 19 Q14 21 19.5 19" stroke="#00F0FF" strokeWidth="0.9" fill="none" opacity="0.9" />
+      <path d="M10.5 24 Q14 25.5 17.5 24" stroke="#00F0FF" strokeWidth="0.8" fill="none" opacity="0.9" />
+      {/* Cork Dome */}
+      <circle cx="14" cy="9" r="5" fill="#FF5A16" />
+      <ellipse cx="14" cy="7.5" rx="3" ry="1.5" fill="#FFA366" opacity="0.8" />
+      <path d="M9 10 Q14 12 19 10" stroke="#FFFFFF" strokeWidth="1" />
+    </svg>
+  );
+}
+
 export const ArcadeNav: React.FC = () => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
-      <nav className="sticky top-0 z-40 bg-pixel-black/90 backdrop-blur-md border-b-2 border-pixel-orange-fiery px-4 py-3 shadow-pixel-orange select-none">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <nav className="sticky top-0 z-40 bg-[#040711]/98 backdrop-blur-2xl border-b border-white/15 px-3 sm:px-6 shadow-[0_4px_30px_rgba(0,0,0,0.85)] select-none">
+        <div className="max-w-7xl mx-auto flex items-center justify-between h-[62px] relative">
+          {/* Left vertical accent stripe matching reference */}
+          <div className="absolute -left-3 sm:-left-6 top-0 bottom-0 w-1.5 sm:w-2 bg-[#FF5A16] shadow-[0_0_12px_rgba(255,90,22,0.9)]" />
+
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="p-1.5 bg-pixel-orange-fiery border border-black shadow-pixel-sm group-hover:scale-110 transition-transform">
-              <Zap className="w-5 h-5 text-black" />
-            </div>
-            <div>
-              <span className="font-display text-base text-pixel-cream tracking-tight group-hover:text-pixel-orange-bright transition-colors">
-                SOUTH ZONE 2026
+          <Link href="/" className="flex items-center gap-3 group pl-1">
+            <ShuttlecockLogo className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 group-hover:scale-105 transition-transform drop-shadow-[0_0_8px_rgba(255,90,22,0.5)]" />
+            <div className="flex flex-col">
+              <span className="font-rajdhani text-lg sm:text-xl text-white font-black tracking-wider leading-none group-hover:text-[#FF5A16] transition-colors">
+                SOUTH ZONE
               </span>
-              <span className="block font-pixel text-[8px] text-pixel-amber">
-                BADMINTON CHAMPIONSHIP
+              <span className="font-rajdhani text-[9px] sm:text-[10px] text-slate-300 font-bold tracking-[0.16em] leading-tight uppercase mt-0.5">
+                WOMEN&apos;S BADMINTON CHAMPIONSHIP 2026
               </span>
             </div>
           </Link>
 
-          {/* Desktop HUD Navigation Menu */}
-          <div className="hidden lg:flex items-center gap-1 bg-pixel-dark/80 p-1 border border-pixel-gray-800">
+          {/* Desktop Navigation Links */}
+          <div className="hidden lg:flex items-center gap-5 xl:gap-7 font-rajdhani text-xs sm:text-sm tracking-[0.14em] font-bold uppercase">
             {PUBLIC_NAV_ITEMS.map((item) => {
               const isActive = pathname === item.path;
               return (
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`font-pixel text-[10px] uppercase px-3 py-1.5 transition-all duration-150 ${
+                  className={`relative py-2 transition-colors duration-150 ${
                     isActive
-                      ? "bg-pixel-orange-fiery text-black border border-black font-bold shadow-pixel-sm"
-                      : "text-pixel-gray-300 hover:text-pixel-orange-bright hover:bg-pixel-gray-900"
+                      ? "text-[#FF5A16] font-black"
+                      : "text-slate-200 hover:text-[#FF5A16]"
                   }`}
                 >
                   {item.label}
+                  {isActive && (
+                    <div className="absolute -bottom-1.5 left-0 right-0 h-[2.5px] bg-[#FF5A16] shadow-[0_0_8px_rgba(255,90,22,0.9)]" />
+                  )}
                 </Link>
               );
             })}
           </div>
 
-          {/* CTA & Dashboard Portals */}
-          <div className="hidden sm:flex items-center gap-3">
-            <Link href="/register">
-              <PixelButton variant="primary" size="sm" glow>
-                ENTER ARENA
-              </PixelButton>
-            </Link>
-            <Link href="/admin">
-              <PixelButton variant="dark" size="sm">
-                <Shield className="w-3.5 h-3.5" />
-                <span>DASHBOARDS</span>
-              </PixelButton>
-            </Link>
-          </div>
-
           {/* Mobile Menu Hamburger Button */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden p-2 bg-pixel-dark border-2 border-pixel-orange-fiery text-pixel-orange-bright shadow-pixel-sm active:scale-95 transition-transform"
+            className="lg:hidden p-2 text-white bg-white/5 border border-white/10 rounded-lg shadow-sm hover:border-[#FF5A16] transition-colors cursor-pointer"
+            aria-label="Toggle navigation menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </button>
         </div>
       </nav>
