@@ -20,7 +20,8 @@
     "test:system": "npx tsx tests/system.test.ts",
     "test:tournament": "npx tsx tests/tournament-admin.test.ts",
     "test:profile": "npx tsx tests/profile.test.ts",
-    "test": "npx tsx tests/rbac.test.ts && npx tsx tests/team-manager.test.ts && npx tsx tests/participant.test.ts && npx tsx tests/organizer.test.ts && npx tsx tests/operations.test.ts && npx tsx tests/volunteer.test.ts && npx tsx tests/communications.test.ts && npx tsx tests/support.test.ts && npx tsx tests/reports.test.ts && npx tsx tests/system.test.ts && npx tsx tests/tournament-admin.test.ts && npx tsx tests/profile.test.ts"
+    "test:fixtures": "npx tsx tests/fixtures.test.ts",
+    "test": "npx tsx tests/rbac.test.ts && npx tsx tests/team-manager.test.ts && npx tsx tests/participant.test.ts && npx tsx tests/organizer.test.ts && npx tsx tests/operations.test.ts && npx tsx tests/volunteer.test.ts && npx tsx tests/communications.test.ts && npx tsx tests/support.test.ts && npx tsx tests/reports.test.ts && npx tsx tests/system.test.ts && npx tsx tests/tournament-admin.test.ts && npx tsx tests/profile.test.ts && npx tsx tests/fixtures.test.ts"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",

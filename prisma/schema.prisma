@@ -47,12 +47,33 @@ model Match {
   actualStartTime    DateTime?
   actualEndTime      DateTime?
   scheduledStartTime DateTime?
+  // ── FIXTURE GRAPH & TOURNAMENT BRACKET RELATIONS ──
+  publicMatchNumber  String?       @unique // "M001" through "M100"
+  pool               String?       // "A", "B", "C", "D", "CHAMPIONSHIP"
+  roundStage         String?       // "ROUND_1", "ROUND_2", "QUARTER_FINAL", "SEMI_FINAL", "POOL_FINAL", "PLAYOFF_3RD", "GRAND_FINAL"
+  roundName          String?       // "Round 1", "Round of 16", "Quarter-Finals", "Semi-Finals", "Finals", etc.
+  roundOrder         Int?          // 1, 2, 3, 4, 5, 6
+  teamAId            String?       // Linked Team ID if assigned
+  teamBId            String?       // Linked Team ID if assigned
+  sourceAType        String?       // "POSITION" | "WINNER" | "LOSER"
+  sourceBType        String?       // "POSITION" | "WINNER" | "LOSER"
+  sourceAPositionId  String?       // e.g. "POOL-A-FIRST-01"
+  sourceBPositionId  String?       // e.g. "POOL-A-FIRST-02"
+  sourceAMatchNumber String?       // "M001"
+  sourceBMatchNumber String?       // "M002"
+  sourceAMatchId     String?       // Upstream internal match ID
+  sourceBMatchId     String?       // Upstream internal match ID
+  downstreamMatchId  String?       // Downstream internal match ID
+  downstreamSlot     String?       // "A" | "B"
+  downstreamMatchNumber String?    // "M010"
   events             MatchEvent[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   @@index([dayId])
   @@index([status])
+  @@index([pool])
+  @@index([roundStage])
   @@map("matches")
 }
 
@@ -1164,3 +1185,77 @@ model FoodConsumption {
   @@index([servedAt])
   @@map("food_consumptions")
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// 100-TEAM CHAMPIONSHIP FIXTURE GRAPH & DRAW STATE MACHINE
+// ═══════════════════════════════════════════════════════════════════
+
+model FixtureConfig {
+  id                 String    @id @default("SZWBT-2026-FIXTURE")
+  status             String    @default("DRAFT") // "DRAFT", "DRAWING", "COMPLETE", "LOCKED", "PUBLISHED"
+  totalTeams         Int       @default(100)
+  teamsPerPool       Int       @default(25)
+  currentDrawNumber  Int       @default(1)
+  currentPool        String    @default("A") // "A", "B", "C", "D"
+  currentSide        String    @default("FIRST") // "FIRST", "LAST"
+  currentPositionId  String?
+  isLocked           Boolean   @default(false)
+  lockedBy           String?
+  lockedAt           DateTime?
+  isPublished        Boolean   @default(false)
+  publishedAt        DateTime?
+  publishedBy        String?
+  version            Int       @default(1)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@map("fixture_configs")
+}
+
+model FixturePosition {
+  id                 String    @id // e.g. "POOL-A-FIRST-01"
+  pool               String    // "A", "B", "C", "D"
+  side               String    // "FIRST", "LAST"
+  positionNumber     Int       // 1 to 13
+  globalSequence     Int       // 1 to 100 in template order
+  status             String    @default("AVAILABLE") // "AVAILABLE", "FIXED", "ASSIGNED"
+  isFixed            Boolean   @default(false)
+  fixedReason        String?
+  teamId             String?   @unique // Enforces strict DB uniqueness: 1 position per team!
+  teamName           String?
+  institution        String?
+  drawNumber         Int?
+  assignedAt         DateTime?
+  assignedBy         String?
+  firstMatchId       String?   // internal Match ID
+  firstMatchSlot     String?   // "A" | "B"
+  firstMatchNumber   String?   // "M001"
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([pool, side])
+  @@index([status])
+  @@map("fixture_positions")
+}
+
+model DrawHistory {
+  id             String   @id @default(cuid())
+  drawNumber     Int
+  pool           String
+  side           String
+  positionId     String
+  teamId         String
+  teamName       String
+  institution    String
+  actorEmail     String
+  action         String   // "DRAW_ASSIGNMENT", "FIXED_ASSIGNMENT", "CORRECTION", "START_DRAW", "LOCK", "PUBLISH"
+  previousTeamId String?
+  notes          String?
+  timestamp      DateTime @default(now())
+
+  @@index([drawNumber])
+  @@index([pool])
+  @@index([teamId])
+  @@map("draw_history")
+}
+

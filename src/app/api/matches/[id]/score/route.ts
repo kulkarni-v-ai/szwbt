@@ -47,14 +47,30 @@ export const POST = withAuth(
       }
 
       // 3. Update Match Score
-      const updatedMatch = await prisma.match.update({
+      const isFinishing = body.status === "COMPLETED" || eventType === "MATCH_WON" || body.winner;
+      const winner = body.winner || (scoreA > scoreB ? "PLAYER_A" : "PLAYER_B");
+
+      let updatedMatch = await prisma.match.update({
         where: { id: matchId },
         data: {
           scoreA: scoreA !== undefined ? String(scoreA) : match.scoreA,
           scoreB: scoreB !== undefined ? String(scoreB) : match.scoreB,
-          status: "LIVE",
+          status: isFinishing ? "COMPLETED" : "LIVE",
+          winner: isFinishing ? winner : match.winner,
         },
       });
+
+      // Advance winner to downstream fixture slot if match is completed
+      if (isFinishing) {
+        const { resolveMatchProgression } = await import("@/lib/tournament/fixtureService");
+        await resolveMatchProgression({
+          matchId: match.id,
+          winner,
+          scoreA: scoreA !== undefined ? String(scoreA) : match.scoreA || undefined,
+          scoreB: scoreB !== undefined ? String(scoreB) : match.scoreB || undefined,
+          actorEmail: context.user.email,
+        });
+      }
 
       // 4. Record Match Event
       if (pointTo) {

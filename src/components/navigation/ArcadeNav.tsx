@@ -9,6 +9,7 @@ import { MobileArcadeMenu } from "./MobileArcadeMenu";
 export const PUBLIC_NAV_ITEMS = [
   { label: "HOME", path: "/" },
   { label: "TOURNAMENT", path: "/tournament" },
+  { label: "FIXTURES", path: "/fixtures" },
   { label: "SCHEDULE", path: "/schedule" },
   { label: "RESULTS", path: "/results" },
   { label: "MATCHES", path: "/matches" },

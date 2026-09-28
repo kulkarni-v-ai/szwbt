@@ -1,13 +1,13 @@
 # dependencies
-/node_modules
-/.pnpm-store
+node_modules
+.pnpm-store
 
 # next.js
-/.next/
-/out/
+.next
+out
 
 # production
-/build
+build
 
 # misc
 .DS_Store
@@ -27,7 +27,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# temp lock files
-~$*
-*.tmp
+# git
+.git
+.gitignore
 
+# docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# docs & data
+docs
+tests
+reference_images
+*.md
+*.pdf
+*.xlsx
+~$*

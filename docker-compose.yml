@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: szwbt
+      POSTGRES_PASSWORD: szwbt_password
+      POSTGRES_DB: szwbt
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U szwbt -d szwbt"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://szwbt:szwbt_password@db:5432/szwbt?schema=public
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      SESSION_SECRET: ${SESSION_SECRET:-szwbt-2026-super-secure-production-secret-key-9281726}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-LOCAL_SECURE_STORAGE}
+      # Optional SMTP defaults (override via .env if needed)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@szwbt2026.org}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-South Zone Badminton Championship 2026}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
+      OTP_EXPIRY_MINUTES: ${OTP_EXPIRY_MINUTES:-10}
+      OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-60}
+      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
+    volumes:
+      - ./prisma:/app/prisma:ro
+    command: >
+      sh -c "
+        npx prisma db push &&
+        npx tsx prisma/seed.ts &&
+        node server.js
+      "
+
+volumes:
+  db_data:
