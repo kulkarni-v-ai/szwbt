@@ -99,7 +99,7 @@ async function runTests() {
   const unauthReq = new NextRequest("http://localhost:3000/api/finance/payments");
   const authRes1 = await authenticateRequest(unauthReq);
   assert(
-    !authRes1.authenticated && authRes1.response.status === 401,
+    !authRes1.authenticated && (authRes1 as any).response?.status === 401,
     "01: Unauthenticated request produces HTTP 401 Unauthorized"
   );
 
@@ -301,7 +301,7 @@ async function runTests() {
   assert(
     disabledContext === null &&
       !disabledAuthResult.authenticated &&
-      disabledAuthResult.response.status === 403,
+      (disabledAuthResult as any).response?.status === 403,
     "17: Deactivated/disabled user account is immediately denied access (HTTP 403)"
   );
 

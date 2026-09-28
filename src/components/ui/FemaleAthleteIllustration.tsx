@@ -1,6 +1,8 @@
 "use client";
 import React from 'react';
-import { motion, useTransform, MotionValue, useMotionValue } from 'framer-motion';
+import { motion, useTransform, useMotionValue } from 'framer-motion';
+
+type MotionValue<T = any> = ReturnType<typeof useMotionValue<T>>;
 
 interface FemaleAthleteIllustrationProps {
   variant?: 'hero' | 'action' | 'badge' | 'card' | 'standing';

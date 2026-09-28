@@ -269,7 +269,7 @@ export const ROUTE_PERMISSIONS: Record<string, RouteSecurityRequirement> = {
   },
   "/operations": {
     path: "/operations",
-    requiredPermission: PERMISSIONS.REGISTRATION_READ,
+    requiredPermission: PERMISSIONS.LIVE_OPERATE,
     allowedRoles: [ROLES.SUPER_ADMIN, ROLES.OPERATIONS_STAFF, ROLES.TOURNAMENT_ADMIN],
     name: "On-Ground Operations Field Desk",
   },

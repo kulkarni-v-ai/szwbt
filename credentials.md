@@ -55,6 +55,7 @@ szwbt2026pass
 | **Fleet Transport Manager** | `transport@szwbt2026.edu` | `szwbt2026pass` | Fleet Control | [`/admin/transport`](http://localhost:3000/admin/transport) | Shuttle fleet, driver assignments, Hubballi Junction/Airport pickups. *(Strict Zero Payment Policy enforced)* |
 | **Hostel Logistics Officer** | `hostel@szwbt2026.edu` | `szwbt2026pass` | Residence Advisor | [`/admin/accommodation`](http://localhost:3000/admin/accommodation) | Shalmala & Vindhya Hostel block allocation, room and bed assignments, check-in/out timestamps. |
 | **Arena Field Volunteer** | `volunteer@szwbt2026.edu` | `szwbt2026pass` | Mobile Field | [`/volunteer`](http://localhost:3000/volunteer) | Shift tasks, live court assistance, spectator management, water/shuttle replenishment, and field SOS distress calls. |
+| **Field Volunteer (Support)** | `volunteer2@szwbt2026.edu` | `szwbt2026pass` | Mobile Field | [`/volunteer`](http://localhost:3000/volunteer) | Secondary field volunteer for shift relief, shuttle replenishment, and runner tasks. |
 
 #### 6. Court Technical & Match Officiating
 | Role | Email / Login ID | Password | Clearance Level | Primary Portal Route | Description |
