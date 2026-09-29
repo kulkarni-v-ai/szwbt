@@ -571,19 +571,19 @@ export function OfficialPoolBracket({
   // Geometry configuration
   const config = {
     topPadding: 50,
-    slotHeight: 26,
+    slotHeight: 28,
     slotGap: 8,
-    slotWidth: 420,
+    slotWidth: 430,
     startX: 30,
-    r1ColX: 470,
-    r2ColX: 535,
-    r3ColX: 600,
-    r4ColX: 665,
-    r5ColX: 730,
-    finalColX: 835,
-    endArrowX: 885,
-    badgeW: 24,
-    badgeH: 16,
+    r1ColX: 480,
+    r2ColX: 545,
+    r3ColX: 610,
+    r4ColX: 675,
+    r5ColX: 740,
+    finalColX: 845,
+    endArrowX: 895,
+    badgeW: 26,
+    badgeH: 18,
   };
 
   const pitch = config.slotHeight + config.slotGap;
@@ -1019,7 +1019,7 @@ export function OfficialPoolBracket({
                         x={config.startX + 8}
                         y={centerY + 4}
                         fill={isHovered ? colors.highlightLine : colors.textPrimary}
-                        fontSize="10"
+                        fontSize="11.5"
                         fontWeight="700"
                         fontFamily="Arial, Helvetica, sans-serif"
                         letterSpacing="0.2px"
@@ -1031,8 +1031,8 @@ export function OfficialPoolBracket({
                         x={config.startX + 8}
                         y={centerY + 4}
                         fill={isHovered ? colors.highlightLine : isPaper ? "#64748B" : "#475569"}
-                        fontSize="9.5"
-                        fontWeight="500"
+                        fontSize="11"
+                        fontWeight="600"
                         fontFamily="Arial, Helvetica, sans-serif"
                         letterSpacing="0.2px"
                       >
@@ -1720,8 +1720,8 @@ function renderMatchBadge(
   onClick: (matchNum: number, roundName: string) => void,
   isSpecialFinal = false
 ) {
-  const badgeWidth = isSpecialFinal ? 34 : 26;
-  const badgeHeight = 18;
+  const badgeWidth = isSpecialFinal ? 38 : 30;
+  const badgeHeight = 20;
 
   return (
     <g
@@ -1734,7 +1734,7 @@ function renderMatchBadge(
         y={y - badgeHeight / 2}
         width={badgeWidth}
         height={badgeHeight}
-        rx={2}
+        rx={3}
         fill={colors.badgeBg}
         stroke={isSpecialFinal ? "#FF5A16" : colors.badgeBorder}
         strokeWidth={1.5}
@@ -1747,7 +1747,7 @@ function renderMatchBadge(
         y={y + 4}
         textAnchor="middle"
         fill={isSpecialFinal ? "#FF5A16" : colors.badgeText}
-        fontSize="9"
+        fontSize="11"
         fontWeight="800"
         fontFamily="Arial, Helvetica, sans-serif"
       >

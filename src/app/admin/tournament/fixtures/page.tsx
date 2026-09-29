@@ -725,7 +725,7 @@ export default function AdminFixturesPage() {
                       key={p}
                       type="button"
                       onClick={() => setActivePool(p)}
-                      className={`px-4 py-2 font-pixel text-xs uppercase font-bold rounded-lg transition-all flex items-center gap-2 ${
+                      className={`px-4 py-2 font-pixel text-xs sm:text-sm uppercase font-black rounded-lg transition-all flex items-center gap-2 ${
                         isActive
                           ? "bg-[#00F0FF] text-black shadow-[0_0_15px_rgba(0,240,255,0.5)]"
                           : "text-[#91A0AE] hover:text-[#f5e6ca]"
@@ -733,11 +733,11 @@ export default function AdminFixturesPage() {
                     >
                       <span>POOL {p}</span>
                       <span
-                        className={`text-[9px] px-2 py-0.5 rounded font-mono font-bold ${
+                        className={`text-xs px-2.5 py-0.5 rounded font-mono font-bold ${
                           isFull
                             ? "bg-rose-500/20 text-rose-400 border border-rose-500/40"
                             : isActive
-                            ? "bg-black/30 text-black font-extrabold"
+                            ? "bg-black/30 text-black font-black"
                             : "bg-[#101935] text-[#00F0FF]"
                         }`}
                       >
@@ -829,9 +829,9 @@ export default function AdminFixturesPage() {
                   key={mode}
                   type="button"
                   onClick={() => setPositionFilter(mode)}
-                  className={`px-3 py-1.5 font-pixel text-[11px] uppercase rounded-lg transition-colors ${
+                  className={`px-3.5 py-1.5 font-pixel text-xs sm:text-[13px] uppercase font-bold rounded-lg transition-colors ${
                     positionFilter === mode
-                      ? "bg-[#00F0FF] text-black font-bold shadow"
+                      ? "bg-[#00F0FF] text-black font-black shadow"
                       : "text-[#91A0AE] hover:text-white"
                   }`}
                 >
@@ -849,59 +849,60 @@ export default function AdminFixturesPage() {
             </div>
 
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-[#91A0AE] absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-[#91A0AE] absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Search slot # or team..."
                 value={positionSearch}
                 onChange={(e) => setPositionSearch(e.target.value)}
-                className="bg-[#0b0f1d] border border-[#1b253b] text-xs text-[#f5e6ca] pl-8 pr-3 py-1.5 rounded-lg focus:outline-none focus:border-[#00F0FF] w-52"
+                className="bg-[#0b0f1d] border border-[#1b253b] text-xs sm:text-sm text-[#f5e6ca] pl-9 pr-3 py-1.5 rounded-lg focus:outline-none focus:border-[#00F0FF] w-60 font-medium"
               />
             </div>
           </div>
 
           {/* ═══ INTERACTIVE POSITION GRID FOR ACTIVE POOL ═══ */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {filteredActivePositions.map((pos) => {
               const isAssigned = pos.status === "ASSIGNED";
               const isFixed = pos.isFixed;
               const isBye = pos.isBye;
               const isSeed = pos.isSeed;
+              const seedNum = pos.seed || (activePool === "A" ? 1 : activePool === "B" ? 2 : activePool === "C" ? 3 : 4);
 
               return (
                 <div
                   key={pos.slot}
-                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 relative ${
+                  className={`p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 relative hover:shadow-lg ${
                     isAssigned
-                      ? "bg-[#050A18] border-[#05D550]/50 hover:border-[#05D550] shadow-[0_0_15px_rgba(5,213,80,0.1)]"
+                      ? "bg-[#050A18] border-[#05D550]/60 hover:border-[#05D550] shadow-[0_0_15px_rgba(5,213,80,0.12)]"
                       : isFixed
-                      ? "bg-[#050A18] border-[#A78BFA]/50"
+                      ? "bg-[#050A18] border-[#A78BFA]/60"
                       : isSeed
-                      ? "bg-[#050A18] border-[#FFB800]/40 hover:border-[#FFB800]"
+                      ? "bg-[#050A18] border-[#FFB800]/50 hover:border-[#FFB800]"
                       : isBye
-                      ? "bg-[#050A18] border-[#18D8D0]/40 hover:border-[#18D8D0]"
-                      : "bg-[#050A18] border-[#1b253b] hover:border-[#00F0FF]/60"
+                      ? "bg-[#050A18] border-[#18D8D0]/50 hover:border-[#18D8D0]"
+                      : "bg-[#050A18] border-[#1b253b] hover:border-[#00F0FF]/70"
                   }`}
                 >
                   {/* Position Header */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-pixel text-xs font-extrabold text-[#f5e6ca]">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-pixel text-sm sm:text-[15px] font-black text-[#f5e6ca] tracking-tight">
                         SLOT #{String(pos.slot).padStart(2, "0")}
                       </span>
                       {isSeed ? (
-                        <span className="px-1.5 py-0.2 bg-[#FFB800] text-black font-pixel text-[8px] font-bold rounded">
-                          SEED 1
+                        <span className="px-2 py-0.5 bg-[#FFB800] text-black font-pixel text-[10px] sm:text-[11px] font-extrabold rounded uppercase shadow-sm">
+                          SEED #{seedNum}
                         </span>
                       ) : isBye ? (
-                        <span className="px-1.5 py-0.2 bg-[#18D8D0]/20 text-[#00F0FF] border border-[#00F0FF]/40 font-pixel text-[8px] font-bold rounded">
+                        <span className="px-2 py-0.5 bg-[#18D8D0]/20 text-[#00F0FF] border border-[#00F0FF]/50 font-pixel text-[10px] sm:text-[11px] font-extrabold rounded uppercase">
                           BYE
                         </span>
                       ) : null}
                     </div>
 
                     <span
-                      className={`font-pixel text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
+                      className={`font-pixel text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded font-extrabold uppercase shrink-0 ${
                         isFixed
                           ? "bg-[#A78BFA] text-black"
                           : isAssigned
@@ -914,31 +915,31 @@ export default function AdminFixturesPage() {
                   </div>
 
                   {/* Fixture Context / Progression */}
-                  <div className="font-pixel text-[9px] text-[#91A0AE]">
+                  <div className="font-pixel text-xs text-[#00F0FF] font-semibold truncate">
                     {pos.matchLabel}
                   </div>
 
                   {/* Assigned Team Card or Empty Placeholder */}
                   {isAssigned ? (
-                    <div className="p-2.5 bg-[#0e162b] border border-[#05D550]/30 rounded-xl space-y-1">
+                    <div className="p-2 bg-[#0e162b] border border-[#05D550]/30 rounded-lg space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-pixel text-[10px] text-[#05D550] font-bold">
+                        <span className="font-pixel text-xs font-black text-[#05D550]">
                           TEAM #{pos.teamNumber || "-"}
                         </span>
-                        <span className="font-pixel text-[9px] text-[#00F0FF] truncate">
+                        <span className="font-pixel text-xs font-bold text-[#00F0FF] truncate">
                           {pos.teamCode}
                         </span>
                       </div>
-                      <h4 className="font-display text-sm text-[#f5e6ca] font-bold uppercase line-clamp-2">
+                      <h4 className="font-display text-sm sm:text-[15px] text-[#f5e6ca] font-bold uppercase line-clamp-2 leading-tight">
                         {pos.teamName}
                       </h4>
                       {pos.state && (
-                        <div className="text-[10px] text-[#91A0AE] truncate">{pos.state}</div>
+                        <div className="text-xs text-[#91A0AE] truncate font-medium">{pos.state}</div>
                       )}
                     </div>
                   ) : (
-                    <div className="p-3 bg-[#0b0f1d]/60 border border-dashed border-[#1b253b] rounded-xl text-center">
-                      <span className="font-pixel text-[10px] text-[#91A0AE] block">
+                    <div className="py-2 px-2 bg-[#0b0f1d]/70 border border-dashed border-[#1b253b] rounded-lg text-center">
+                      <span className="font-pixel text-xs font-bold text-[#91A0AE] block uppercase tracking-wider">
                         POSITION UNASSIGNED
                       </span>
                     </div>
@@ -946,25 +947,25 @@ export default function AdminFixturesPage() {
 
                   {/* Opponent Context (Display Only) */}
                   {pos.opponentSlot && (
-                    <div className="text-[10px] font-mono text-[#91A0AE] flex items-center justify-between pt-1 border-t border-[#1b253b]">
-                      <span>VS Slot #{pos.opponentSlot}:</span>
-                      <span className="text-[#f5e6ca] truncate max-w-[100px]">
+                    <div className="text-xs font-mono text-[#91A0AE] flex items-center justify-between pt-1 border-t border-[#1b253b]/80">
+                      <span className="font-semibold">VS Slot #{pos.opponentSlot}:</span>
+                      <span className="text-[#f5e6ca] font-bold truncate max-w-[120px]">
                         {pos.opponentTeam ? `#${pos.opponentTeam.teamNumber} ${pos.opponentTeam.teamName}` : "TBD"}
                       </span>
                     </div>
                   )}
 
                   {/* Individual Action Buttons */}
-                  <div className="pt-2 flex items-center gap-1.5">
+                  <div className="pt-1 flex items-center gap-1.5">
                     {isAssigned ? (
                       <>
                         <button
                           type="button"
                           onClick={() => handleOpenAssignModal(pos)}
                           disabled={actionLoading || (config.isLocked && !pos.isFixed)}
-                          className="flex-1 py-1.5 bg-[#1A2644] hover:bg-[#2A3B66] text-[#00F0FF] border border-[#00F0FF]/40 font-pixel text-[10px] uppercase rounded-lg transition-colors flex items-center justify-center gap-1"
+                          className="flex-1 py-1.5 bg-[#1A2644] hover:bg-[#2A3B66] text-[#00F0FF] border border-[#00F0FF]/40 font-pixel text-xs font-bold uppercase rounded-lg transition-colors flex items-center justify-center gap-1"
                         >
-                          <Edit3 className="w-3 h-3" />
+                          <Edit3 className="w-3.5 h-3.5" />
                           <span>CHANGE</span>
                         </button>
                         <button
@@ -974,7 +975,7 @@ export default function AdminFixturesPage() {
                           className="p-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 rounded-lg transition-colors"
                           title="Remove team from position"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </>
                     ) : (
@@ -982,7 +983,7 @@ export default function AdminFixturesPage() {
                         type="button"
                         onClick={() => handleOpenAssignModal(pos)}
                         disabled={actionLoading || poolCounts[activePool] >= ((activePool === "A" || activePool === "C") ? 26 : 25)}
-                        className="w-full py-2 bg-gradient-to-r from-[#00F0FF] to-[#05D550] hover:from-[#33f3ff] hover:to-[#22e666] disabled:opacity-40 text-black font-pixel text-xs font-bold uppercase rounded-lg shadow transition-all flex items-center justify-center gap-1.5"
+                        className="w-full py-1.5 sm:py-2 bg-gradient-to-r from-[#00F0FF] to-[#05D550] hover:from-[#33f3ff] hover:to-[#22e666] disabled:opacity-40 text-black font-pixel text-xs sm:text-[13px] font-black uppercase rounded-lg shadow transition-all flex items-center justify-center gap-1.5"
                       >
                         <PlusCircle className="w-3.5 h-3.5" />
                         <span>ASSIGN TEAM</span>
