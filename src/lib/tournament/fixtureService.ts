@@ -223,6 +223,129 @@ export async function initFixtureGraph(): Promise<{
 }
 
 /**
+ * Resets the entire fixture graph to a clean unassigned state.
+ * Clears all team assignments from positions, resets matches back to TBD,
+ * clears match events, wipes draw history, and resets FixtureConfig to DRAFT Draw #1.
+ */
+export async function resetFixtureGraph(actorEmail = "system@szwbt2026.edu"): Promise<{
+  success: boolean;
+  positionsReset: number;
+  matchesReset: number;
+}> {
+  // 1. Reset all 100 positions to AVAILABLE
+  const posTemplates = getAllPositionTemplates();
+  const matchTemplates = getAllMatchTemplates();
+
+  await prisma.fixturePosition.updateMany({
+    data: {
+      status: "AVAILABLE",
+      isFixed: false,
+      fixedReason: null,
+      teamId: null,
+      teamName: null,
+      institution: null,
+      drawNumber: null,
+      assignedAt: null,
+      assignedBy: null,
+    },
+  });
+
+  // 2. Reset all 100 tournament matches back to TBD
+  for (const mt of matchTemplates) {
+    const playerA = mt.sourceAType === "POSITION" ? `TBD (${mt.sourceAPositionId})` : `Winner of ${mt.sourceAMatchNumber}`;
+    const playerB =
+      mt.sourceBType === "POSITION"
+        ? `TBD (${mt.sourceBPositionId})`
+        : mt.sourceBType === "LOSER"
+        ? `Loser of ${mt.sourceBMatchNumber}`
+        : `Winner of ${mt.sourceBMatchNumber}`;
+
+    await prisma.match.updateMany({
+      where: { publicMatchNumber: mt.publicMatchNumber },
+      data: {
+        playerA,
+        institutionA: "",
+        playerB,
+        institutionB: "",
+        scoreA: null,
+        scoreB: null,
+        status: "UPCOMING",
+        winner: null,
+        teamAId: null,
+        teamBId: null,
+      },
+    });
+  }
+
+  // Clear events for tournament matches
+  const tournamentMatches = await prisma.match.findMany({
+    where: { publicMatchNumber: { not: null } },
+    select: { id: true },
+  });
+  const tMatchIds = tournamentMatches.map((m) => m.id);
+  if (tMatchIds.length > 0) {
+    await prisma.matchEvent.deleteMany({
+      where: { matchId: { in: tMatchIds } },
+    });
+  }
+
+  // 3. Clear draw history
+  await prisma.drawHistory.deleteMany({});
+
+  // 4. Reset FixtureConfig
+  await prisma.fixtureConfig.upsert({
+    where: { id: "SZWBT-2026-FIXTURE" },
+    update: {
+      status: "DRAFT",
+      totalTeams: 100,
+      teamsPerPool: 25,
+      currentDrawNumber: 1,
+      currentPool: "A",
+      currentSide: "FIRST",
+      currentPositionId: null,
+      isLocked: false,
+      lockedBy: null,
+      lockedAt: null,
+      isPublished: false,
+      publishedAt: null,
+      publishedBy: null,
+      version: 1,
+    },
+    create: {
+      id: "SZWBT-2026-FIXTURE",
+      status: "DRAFT",
+      totalTeams: 100,
+      teamsPerPool: 25,
+      currentDrawNumber: 1,
+      currentPool: "A",
+      currentSide: "FIRST",
+      currentPositionId: null,
+      isLocked: false,
+      lockedBy: null,
+      lockedAt: null,
+      isPublished: false,
+      publishedAt: null,
+      publishedBy: null,
+      version: 1,
+    },
+  });
+
+  await logAuditEvent({
+    actorEmail,
+    action: "RESET_FIXTURES",
+    resourceType: "fixture_graph",
+    resourceId: "SZWBT-2026-FIXTURE",
+    metadata: { reason: "Fixtures cleared to unassigned state; ready for sequential draw flow." },
+  });
+
+  return {
+    success: true,
+    positionsReset: posTemplates.length,
+    matchesReset: matchTemplates.length,
+  };
+}
+
+/**
  * Computes the exact next position to draw following the strict sequence:
  * Cycle: A FIRST -> B FIRST -> C FIRST -> D FIRST -> A LAST -> B LAST -> C LAST -> D LAST -> repeat
  * Automatically skips fixed positions and already assigned positions.

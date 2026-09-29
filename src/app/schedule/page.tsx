@@ -178,10 +178,19 @@ export default function SchedulePage() {
 
         {/* ═══ ARCADE SCHEDULE TABLE MATRIX OR TBA VIEW ═══ */}
         <div className="bg-[#07101D]/90 backdrop-blur-xl border-2 border-[#00F0FF]/40 p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.7)] rounded-xl">
-          <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10 font-rajdhani text-xs">
-            <span className="text-[#00F0FF] font-bold uppercase tracking-wider">
-              MATCHES FOR {dayTabs.find((d) => d.id === selectedDay)?.date} — {dayTabs.find((d) => d.id === selectedDay)?.title}
-            </span>
+          <div className="flex flex-wrap items-center justify-between pb-4 mb-4 border-b border-white/10 font-rajdhani text-xs gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[#00F0FF] font-bold uppercase tracking-wider text-sm">
+                MATCHES FOR {dayTabs.find((d) => d.id === selectedDay)?.date} — {dayTabs.find((d) => d.id === selectedDay)?.title}
+              </span>
+              <Link
+                href="/fixtures"
+                className="px-2.5 py-1 bg-[#FF5A16]/20 hover:bg-[#FF5A16] text-[#FF5A16] hover:text-black border border-[#FF5A16]/50 rounded font-pixel text-[10px] transition-all flex items-center gap-1 font-bold"
+              >
+                <span>OFFICIAL FIXTURES MATRIX</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
             <span className={isTba ? "text-amber-400 font-bold" : "text-[#00FF88] font-bold"}>
               {isTba ? "STATUS: TBA (PENDING CSV INTAKE)" : `${filteredMatches.length} MATCHES SCHEDULED`}
             </span>
@@ -278,15 +287,19 @@ export default function SchedulePage() {
 
                         {/* Players & Institutions */}
                         <td className="py-3.5 px-3">
-                          <div className="flex flex-col gap-0.5 max-w-md">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-white">{m.playerA}</span>
-                              <span className="text-[10px] text-slate-400 truncate">({m.institutionA})</span>
+                          <div className="flex flex-col gap-1 max-w-md">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-white text-xs">{m.playerA || "TBD"}</span>
+                              {m.institutionA && m.institutionA !== m.playerA && (
+                                <span className="text-[10px] text-slate-400 truncate">({m.institutionA})</span>
+                              )}
                             </div>
-                            <span className="text-[9px] text-[#00F0FF] font-mono font-bold">VS</span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-white">{m.playerB}</span>
-                              <span className="text-[10px] text-slate-400 truncate">({m.institutionB})</span>
+                            <span className="text-[9px] text-[#00F0FF] font-mono font-bold tracking-wider">VS</span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-white text-xs">{m.playerB || "TBD"}</span>
+                              {m.institutionB && m.institutionB !== m.playerB && (
+                                <span className="text-[10px] text-slate-400 truncate">({m.institutionB})</span>
+                              )}
                             </div>
                           </div>
                         </td>

@@ -12,11 +12,13 @@ import { logAuditEvent } from "./audit";
 export interface AuthSuccess {
   authenticated: true;
   context: UserContext;
+  response?: undefined;
 }
 
 export interface AuthFailure {
   authenticated: false;
   response: NextResponse;
+  context?: undefined;
 }
 
 export type AuthResult = AuthSuccess | AuthFailure;

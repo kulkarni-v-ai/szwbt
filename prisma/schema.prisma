@@ -260,6 +260,7 @@ model Team {
   paymentLedgers     FeeLedger[]
   qrPasses           QrPass[]
   foodAssignments    FoodPackageAssignment[]
+  bracketSlots       BracketSlotAssignment[]
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
 
@@ -1257,5 +1258,29 @@ model DrawHistory {
   @@index([pool])
   @@index([teamId])
   @@map("draw_history")
+}
+
+model BracketSlotAssignment {
+  id             String    @id @default(cuid())
+  pool           String    // "A", "B", "C", "D"
+  slot           Int       // 1 to 30
+  teamId         String?
+  team           Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  teamCode       String?   // "TM-SZ-001"
+  teamNumber     Int?      // 1 to 101
+  teamName       String?
+  state          String?
+  seed           Int?
+  isByeToFinal   Boolean   @default(false)
+  isByeR1        Boolean   @default(false)
+  assignedAt     DateTime?
+  assignedBy     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([pool, slot])
+  @@index([pool])
+  @@index([teamId])
+  @@map("bracket_slot_assignments")
 }
 
