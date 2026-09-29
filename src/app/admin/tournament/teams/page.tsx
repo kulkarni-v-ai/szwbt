@@ -471,20 +471,16 @@ export default function TournamentAllTeamsPage() {
                 ) : (
                   paginatedTeams.map((team) => {
                     const badge = getSlotBadge(team);
-                    const pool = team.assignedPool;
-                    const poolBadgeColor =
-                      pool === "A"
-                        ? "bg-[#00F0FF]/20 text-[#00F0FF] border-[#00F0FF]/50"
-                        : pool === "B"
-                        ? "bg-purple-500/20 text-purple-300 border-purple-500/50"
-                        : pool === "C"
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
-                        : "bg-emerald-500/20 text-emerald-300 border-emerald-500/50";
+                    const isAssigned = !!team.assignedPool && !!team.assignedSlot;
 
                     return (
                       <tr
                         key={team.id}
-                        className="hover:bg-[#0c1429] transition-colors group"
+                        className={`transition-colors group ${
+                          isAssigned
+                            ? "hover:bg-[#061814]/70 border-l-4 border-l-[#05D550]"
+                            : "hover:bg-[#0c1429]"
+                        }`}
                       >
                         {/* 1. Team / Draw Number */}
                         <td className="py-3 px-4 whitespace-nowrap font-pixel font-bold">
@@ -518,20 +514,19 @@ export default function TournamentAllTeamsPage() {
                           </span>
                         </td>
 
-                        {/* 5. Assigned Pool & Slot */}
+                        {/* 5. Assigned Pool & Slot (Vivid Green when assigned a place) */}
                         <td className="py-3 px-4 whitespace-nowrap">
-                          {team.assignedPool ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className={`px-2 py-0.5 rounded font-pixel text-xs font-bold border ${poolBadgeColor}`}>
-                                POOL {team.assignedPool}
-                              </span>
-                              <span className="font-mono text-xs text-slate-300 font-semibold">
-                                Slot #{team.assignedSlot}
+                          {isAssigned ? (
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#05D550]/15 border border-[#05D550]/70 shadow-[0_0_12px_rgba(5,213,80,0.25)]">
+                              <span className="w-2 h-2 rounded-full bg-[#05D550] shadow-[0_0_8px_#05D550] shrink-0 animate-pulse" />
+                              <span className="font-pixel text-xs font-black text-[#05D550] tracking-wide uppercase">
+                                POOL {team.assignedPool} &bull; SLOT #{String(team.assignedSlot).padStart(2, "0")}
                               </span>
                             </div>
                           ) : (
-                            <span className="font-pixel text-[11px] text-zinc-500 uppercase">
-                              Unassigned
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-700/40 text-zinc-500 font-pixel text-[11px] uppercase">
+                              <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                              <span>Unassigned</span>
                             </span>
                           )}
                         </td>
@@ -553,7 +548,11 @@ export default function TournamentAllTeamsPage() {
                         <td className="py-3 px-4 text-right whitespace-nowrap">
                           <Link
                             href={`/admin/tournament/fixtures?pool=${team.assignedPool || "A"}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#121829] hover:bg-[#1C2742] text-[#00F0FF] border border-[#00F0FF]/40 rounded font-pixel text-[11px] font-bold uppercase transition-colors"
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded font-pixel text-xs font-bold uppercase transition-all ${
+                              isAssigned
+                                ? "bg-[#05D550]/15 hover:bg-[#05D550]/30 text-[#05D550] border border-[#05D550]/60 shadow-[0_0_8px_rgba(5,213,80,0.2)]"
+                                : "bg-[#121829] hover:bg-[#1C2742] text-[#00F0FF] border border-[#00F0FF]/40"
+                            }`}
                             title="View this team in the official pool bracket"
                           >
                             <span>VIEW</span>

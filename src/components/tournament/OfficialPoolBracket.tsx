@@ -994,7 +994,9 @@ export function OfficialPoolBracket({
                             ? "#EBF4FF"
                             : "#18264A"
                           : isAssigned
-                          ? colors.cardBg
+                          ? isPaper
+                            ? "#F0FDF4"
+                            : "#051A14"
                           : isPaper
                           ? "#F8FAFC"
                           : "#070E1E"
@@ -1003,22 +1005,24 @@ export function OfficialPoolBracket({
                         isHovered
                           ? colors.highlightLine
                           : isAssigned
-                          ? colors.cardBorder
+                          ? isPaper
+                            ? "#16A34A"
+                            : "#05D550"
                           : isPaper
                           ? "#94A3B8"
                           : "#1E3056"
                       }
-                      strokeWidth={1.5}
+                      strokeWidth={isAssigned ? 1.8 : 1.5}
                       strokeDasharray={isAssigned ? undefined : "3 3"}
                       className="transition-colors"
                     />
 
                     {/* Team slot text */}
-                      {isAssigned ? (
+                    {isAssigned ? (
                       <text
                         x={config.startX + 10}
                         y={centerY + 5}
-                        fill={isHovered ? colors.highlightLine : colors.textPrimary}
+                        fill={isHovered ? colors.highlightLine : isPaper ? "#14532D" : "#05D550"}
                         fontSize="13.5"
                         fontWeight="800"
                         fontFamily="Arial, Helvetica, sans-serif"
