@@ -21,6 +21,7 @@ import {
   Radio,
   X,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 
 export type PoolCode = "A" | "B" | "C" | "D" | "CHAMPIONSHIP";
@@ -46,20 +47,51 @@ export interface PoolBracketProps {
   onSlotAssigned?: () => void;
 }
 
+// ── B/D Pool bracket (25 rows): 1 seed + 8 R1 byes + 8 R1 matches = 25 ──
+// Pattern: SEED | BYE | PAIR | PAIR | BYE | PAIR | PAIR | BYE | PAIR | BYE | PAIR | BYE | PAIR | BYE | PAIR | BYE | BYE
+// Byes sit BETWEEN pair-groups, never inside a pair.
+// Bye slots: 2, 7, 12, 15, 18, 21, 24, 25
+// R1 pairs (all strictly adjacent): (3,4) (5,6) (8,9) (10,11) (13,14) (16,17) (19,20) (22,23)
+export const BD_R1_MATCHES = [
+  { slotA: 3,  slotB: 4  },  // M1
+  { slotA: 5,  slotB: 6  },  // M2
+  { slotA: 8,  slotB: 9  },  // M3
+  { slotA: 10, slotB: 11 },  // M4
+  { slotA: 13, slotB: 14 },  // M5
+  { slotA: 16, slotB: 17 },  // M6
+  { slotA: 19, slotB: 20 },  // M7
+  { slotA: 22, slotB: 23 },  // M8
+];
+export const BD_R1_BYE_SLOTS = [2, 7, 12, 15, 18, 21, 24, 25];
+
+// ── A/C Pool bracket (26 rows): 1 seed + 7 R1 byes + 9 R1 matches = 26 ──
+// Strictly matches official tournament handwritten draw:
+// Section 1 (rows 2-8): Bye 2, Pairs: (3,4), (5,6), (7,8)
+// Section 2 (rows 9-14): Bye 9, Bye 14, Pairs: (10,11), (12,13)
+// Section 3 (rows 15-20): Bye 15, Bye 20, Pairs: (16,17), (18,19)
+// Section 4 (rows 21-26): Bye 21, Bye 26, Pairs: (22,23), (24,25)
+export const AC_R1_MATCHES = [
+  { slotA: 3,  slotB: 4  },  // M1
+  { slotA: 5,  slotB: 6  },  // M2
+  { slotA: 7,  slotB: 8  },  // M3
+  { slotA: 10, slotB: 11 },  // M4
+  { slotA: 12, slotB: 13 },  // M5
+  { slotA: 16, slotB: 17 },  // M6
+  { slotA: 18, slotB: 19 },  // M7
+  { slotA: 22, slotB: 23 },  // M8
+  { slotA: 24, slotB: 25 },  // M9
+];
+export const AC_R1_BYE_SLOTS = [2, 9, 14, 15, 20, 21, 26];
+
 export const ROUND_1_MATCH_SLOTS: Record<number, { slotA: number; slotB: number }> = {
-  1: { slotA: 3, slotB: 4 },
-  2: { slotA: 5, slotB: 6 },
-  3: { slotA: 7, slotB: 8 },
-  4: { slotA: 9, slotB: 10 },
-  5: { slotA: 11, slotB: 12 },
-  6: { slotA: 13, slotB: 14 },
-  7: { slotA: 15, slotB: 16 },
-  8: { slotA: 18, slotB: 19 },
-  9: { slotA: 20, slotB: 21 },
-  10: { slotA: 22, slotB: 23 },
-  11: { slotA: 24, slotB: 25 },
-  12: { slotA: 26, slotB: 27 },
-  13: { slotA: 28, slotB: 29 },
+  1: { slotA: 3,  slotB: 4  },
+  2: { slotA: 5,  slotB: 6  },
+  3: { slotA: 8,  slotB: 9  },
+  4: { slotA: 10, slotB: 11 },
+  5: { slotA: 13, slotB: 14 },
+  6: { slotA: 16, slotB: 17 },
+  7: { slotA: 19, slotB: 20 },
+  8: { slotA: 22, slotB: 23 },
 };
 
 export function OfficialPoolBracket({
@@ -105,8 +137,9 @@ export function OfficialPoolBracket({
     return counts;
   }, [localSlots]);
 
+  const maxPoolCapacity = (activePool === "A" || activePool === "C") ? 26 : 25;
   const activePoolCount = activePool !== "CHAMPIONSHIP" ? poolCounts[activePool] || 0 : 0;
-  const isActivePoolFull = activePoolCount >= 25;
+  const isActivePoolFull = activePoolCount >= maxPoolCapacity;
 
   // Slot Assignment Modal state
   const [assignModalSlot, setAssignModalSlot] = useState<TeamSlot | null>(null);
@@ -291,6 +324,40 @@ export function OfficialPoolBracket({
     }
   };
 
+  // Handler: Clear all slots in Active Pool
+  const [isClearingPool, setIsClearingPool] = useState(false);
+  const handleClearActivePool = async (poolToClear: PoolCode = activePool) => {
+    if (poolToClear === "CHAMPIONSHIP") return;
+    if (!confirm(`Are you sure you want to clear all team assignments in POOL ${poolToClear} back to empty?`)) {
+      return;
+    }
+    try {
+      setIsClearingPool(true);
+      const res = await fetch("/api/tournament/fixtures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CLEAR_POOL",
+          pool: poolToClear,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `Failed to clear Pool ${poolToClear}`);
+      }
+      const updatedSlotsRes = await fetch("/api/tournament/fixtures");
+      const updatedData = await updatedSlotsRes.json();
+      if (updatedData.success && updatedData.data.bracketSlots) {
+        setLocalSlots(updatedData.data.bracketSlots);
+      }
+      onSlotAssigned?.();
+    } catch (err: any) {
+      alert(err.message || `Failed to clear Pool ${poolToClear}`);
+    } finally {
+      setIsClearingPool(false);
+    }
+  };
+
   // Handler: Search/Fetch team details from DB as admin types team number or code
   const searchTeam = async (query: string) => {
     if (!query.trim()) {
@@ -332,14 +399,14 @@ export function OfficialPoolBracket({
       return;
     }
 
-    // Strict 25-team limit validation
+    // Strict pool limit validation (26 for A/C, 25 for B/D)
     const otherAssignedCount = (localSlots || []).filter(
       (s: any) => s.pool === activePool && s.teamId && s.slot !== assignModalSlot.slot
     ).length;
 
-    if (otherAssignedCount >= 25) {
+    if (otherAssignedCount >= maxPoolCapacity) {
       setAssignError(
-        `POOL CAPACITY EXCEEDED: Pool ${activePool} has already reached its strict limit of 25 teams (25/25). Remove another team first before assigning this slot.`
+        `POOL CAPACITY EXCEEDED: Pool ${activePool} has already reached its strict limit of ${maxPoolCapacity} teams (${maxPoolCapacity}/${maxPoolCapacity}). Remove another team first before assigning this slot.`
       );
       return;
     }
@@ -423,25 +490,49 @@ export function OfficialPoolBracket({
     }
   };
 
-  // Dynamically compute 30 slots for active pool from database assignments
+  // A/C pools: 26 rows (9 R1 matches + 7 R1 byes + 1 seed)
+  // B/D pools: 25 rows (8 R1 matches + 8 R1 byes + 1 seed)
+  // Both produce 16 R2 entrants → 8 R2 → 4 QF → 2 SF → 1 CF → 1 Final
+  const isACPool = activePool === "A" || activePool === "C";
+  const totalBracketRows = isACPool ? 26 : 25;
+  const r1ByeSlotSet = isACPool
+    ? new Set(AC_R1_BYE_SLOTS)
+    : new Set(BD_R1_BYE_SLOTS);
+
+  // Global slot offset so displayed numbers run 1–102 across all pools:
+  // Pool A: local 1–26  → global 1–26   (offset 0)
+  // Pool B: local 1–25  → global 27–51  (offset 26)
+  // Pool C: local 1–26  → global 52–77  (offset 51)
+  // Pool D: local 1–25  → global 78–102 (offset 77)
+  const poolSlotOffset = useMemo(() => {
+    switch (activePool) {
+      case "A": return 0;
+      case "B": return 26;
+      case "C": return 51;
+      case "D": return 77;
+      default:  return 0;
+    }
+  }, [activePool]);
+
+  /** Returns the globally-numbered label for a pool-local slot. */
+  const globalSlot = (localSlotNum: number) => poolSlotOffset + localSlotNum;
+
+  // Dynamically compute slots for active pool from database assignments
   const currentRoster: TeamSlot[] = useMemo(() => {
     const slots: TeamSlot[] = [];
     const poolSlots = (localSlots || []).filter((s: any) => s.pool === activePool);
     const slotMap = new Map<number, any>(poolSlots.map((s: any) => [s.slot, s]));
+    const isAC = activePool === "A" || activePool === "C";
+    const rowCount = isAC ? 26 : 25;
+    const byeSet = isAC ? new Set(AC_R1_BYE_SLOTS) : new Set(BD_R1_BYE_SLOTS);
 
-    for (let slotNum = 1; slotNum <= 30; slotNum++) {
+    for (let slotNum = 1; slotNum <= rowCount; slotNum++) {
       const assigned = slotMap.get(slotNum);
       const isByeToFinal = slotNum === 1;
-      const isByeR1 = slotNum === 2 || slotNum === 17 || slotNum === 30;
+      const isByeR1 = byeSet.has(slotNum);
       const seed =
         slotNum === 1
-          ? activePool === "A"
-            ? 1
-            : activePool === "B"
-            ? 2
-            : activePool === "C"
-            ? 3
-            : 4
+          ? activePool === "A" ? 1 : activePool === "B" ? 2 : activePool === "C" ? 3 : 4
           : undefined;
 
       slots.push({
@@ -460,6 +551,7 @@ export function OfficialPoolBracket({
   }, [activePool, localSlots]);
 
   // Match offsets for pools
+  // A/C pools have 14 R1 matches and 9 R2 matches; B/D pools have 13 R1 and 8 R2 matches.
   const poolOffsets = useMemo(() => {
     switch (activePool) {
       case "A":
@@ -494,7 +586,8 @@ export function OfficialPoolBracket({
   };
 
   const pitch = config.slotHeight + config.slotGap;
-  const totalSvgHeight = config.topPadding + 30 * pitch + 50;
+  // Height scales with the pool's row count (25 for B/D, 26 for A/C)
+  const totalSvgHeight = config.topPadding + totalBracketRows * pitch + 50;
   const totalSvgWidth = config.endArrowX + 50;
 
   // Coordinate helpers
@@ -506,56 +599,91 @@ export function OfficialPoolBracket({
     return getSlotY(slotNum) + config.slotHeight / 2;
   };
 
-  // Precomputed match centers
+  // ─────────────────────────────────────────────────────────────────
+  // MATCH POSITION CALCULATION — Reference image bracket layout
+  //
+  // B/D (25 rows): byes at 2,7,12,15,18,21,24,25
+  //   All R1 pairs are strictly adjacent (no pair crosses a bye slot):
+  //   (3,4) (5,6) (8,9) (10,11) (13,14) (16,17) (19,20) (22,23)
+  //
+  // A/C (26 rows): byes at 2,9,14,17,22,25,26
+  //   All R1 pairs strictly adjacent:
+  //   (3,4) (5,6) (7,8) (10,11) (12,13) (15,16) (18,19) (20,21) (23,24)
+  //
+  // Both produce 16 R2 inputs → 8 R2 → 4 QF → 2 SF → CF → Final
+  // ─────────────────────────────────────────────────────────────────
   const matchPositions = useMemo(() => {
     const o = poolOffsets;
     const pos: Record<number, number> = {};
+    const isAC = activePool === "A" || activePool === "C";
+    const g = getSlotCenterY;
 
-    // Round 1
-    pos[o.r1 + 0] = (getSlotCenterY(3) + getSlotCenterY(4)) / 2; // Match 1
-    pos[o.r1 + 1] = (getSlotCenterY(5) + getSlotCenterY(6)) / 2; // Match 2
-    pos[o.r1 + 2] = (getSlotCenterY(7) + getSlotCenterY(8)) / 2; // Match 3
-    pos[o.r1 + 3] = (getSlotCenterY(9) + getSlotCenterY(10)) / 2; // Match 4
-    pos[o.r1 + 4] = (getSlotCenterY(11) + getSlotCenterY(12)) / 2; // Match 5
-    pos[o.r1 + 5] = (getSlotCenterY(13) + getSlotCenterY(14)) / 2; // Match 6
-    pos[o.r1 + 6] = (getSlotCenterY(15) + getSlotCenterY(16)) / 2; // Match 7
+    if (isAC) {
+      // ── A/C: 9 R1 matches (strictly matches official tournament handwritten draw) ──
+      pos[o.r1 + 0] = (g(3)  + g(4))  / 2; // M1: (3,4)
+      pos[o.r1 + 1] = (g(5)  + g(6))  / 2; // M2: (5,6)
+      pos[o.r1 + 2] = (g(7)  + g(8))  / 2; // M3: (7,8)
+      pos[o.r1 + 3] = (g(10) + g(11)) / 2; // M4: (10,11)
+      pos[o.r1 + 4] = (g(12) + g(13)) / 2; // M5: (12,13)
+      pos[o.r1 + 5] = (g(16) + g(17)) / 2; // M6: (16,17)
+      pos[o.r1 + 6] = (g(18) + g(19)) / 2; // M7: (18,19)
+      pos[o.r1 + 7] = (g(22) + g(23)) / 2; // M8: (22,23)
+      pos[o.r1 + 8] = (g(24) + g(25)) / 2; // M9: (24,25)
 
-    pos[o.r1 + 7] = (getSlotCenterY(18) + getSlotCenterY(19)) / 2; // Match 8
-    pos[o.r1 + 8] = (getSlotCenterY(20) + getSlotCenterY(21)) / 2; // Match 9
-    pos[o.r1 + 9] = (getSlotCenterY(22) + getSlotCenterY(23)) / 2; // Match 10
-    pos[o.r1 + 10] = (getSlotCenterY(24) + getSlotCenterY(25)) / 2; // Match 11
-    pos[o.r1 + 11] = (getSlotCenterY(26) + getSlotCenterY(27)) / 2; // Match 12
-    pos[o.r1 + 12] = (getSlotCenterY(28) + getSlotCenterY(29)) / 2; // Match 13
+      // A/C R2 (8 matches):
+      pos[o.r2 + 0] = (g(2)           + pos[o.r1+0]) / 2; // bye2   + M1
+      pos[o.r2 + 1] = (pos[o.r1+1]   + pos[o.r1+2]) / 2; // M2     + M3
+      pos[o.r2 + 2] = (g(9)           + pos[o.r1+3]) / 2; // bye9   + M4
+      pos[o.r2 + 3] = (pos[o.r1+4]   + g(14))        / 2; // M5     + bye14
+      pos[o.r2 + 4] = (g(15)          + pos[o.r1+5]) / 2; // bye15  + M6
+      pos[o.r2 + 5] = (pos[o.r1+6]   + g(20))        / 2; // M7     + bye20
+      pos[o.r2 + 6] = (g(21)          + pos[o.r1+7]) / 2; // bye21  + M8
+      pos[o.r2 + 7] = (pos[o.r1+8]   + g(26))        / 2; // M9     + bye26
+    } else {
+      // B/D: 8 adjacent R1 pairs — byes sit BETWEEN pair-groups, never inside
+      // Byes at: 2, 7, 12, 15, 18, 21, 24, 25
+      pos[o.r1+0] = (g(3)  + g(4))  / 2; // M1: (3,4)   → y3.5
+      pos[o.r1+1] = (g(5)  + g(6))  / 2; // M2: (5,6)   → y5.5
+      pos[o.r1+2] = (g(8)  + g(9))  / 2; // M3: (8,9)   → y8.5
+      pos[o.r1+3] = (g(10) + g(11)) / 2; // M4: (10,11) → y10.5
+      pos[o.r1+4] = (g(13) + g(14)) / 2; // M5: (13,14) → y13.5
+      pos[o.r1+5] = (g(16) + g(17)) / 2; // M6: (16,17) → y16.5
+      pos[o.r1+6] = (g(19) + g(20)) / 2; // M7: (19,20) → y19.5
+      pos[o.r1+7] = (g(22) + g(23)) / 2; // M8: (22,23) → y22.5
 
-    // Round 2
-    pos[o.r2 + 0] = (getSlotCenterY(2) + pos[o.r1 + 0]) / 2; // Match 53
-    pos[o.r2 + 1] = (pos[o.r1 + 1] + pos[o.r1 + 2]) / 2; // Match 54
-    pos[o.r2 + 2] = (pos[o.r1 + 3] + pos[o.r1 + 4]) / 2; // Match 55
-    pos[o.r2 + 3] = (pos[o.r1 + 5] + pos[o.r1 + 6]) / 2; // Match 56
+      // B/D R2 (8 matches) — byes between groups, all spans non-zero:
+      // R2M1: bye2(y2)   + M1(y3.5)  → center y2.75
+      pos[o.r2+0] = (g(2)           + pos[o.r1+0]) / 2;
+      // R2M2: M2(y5.5)   + bye7(y7)  → center y6.25
+      pos[o.r2+1] = (pos[o.r1+1]   + g(7))         / 2;
+      // R2M3: M3(y8.5)   + M4(y10.5) → center y9.5
+      pos[o.r2+2] = (pos[o.r1+2]   + pos[o.r1+3]) / 2;
+      // R2M4: bye12(y12) + M5(y13.5) → center y12.75
+      pos[o.r2+3] = (g(12)          + pos[o.r1+4]) / 2;
+      // R2M5: bye15(y15) + M6(y16.5) → center y15.75
+      pos[o.r2+4] = (g(15)          + pos[o.r1+5]) / 2;
+      // R2M6: bye18(y18) + M7(y19.5) → center y18.75
+      pos[o.r2+5] = (g(18)          + pos[o.r1+6]) / 2;
+      // R2M7: bye21(y21) + M8(y22.5) → center y21.75
+      pos[o.r2+6] = (g(21)          + pos[o.r1+7]) / 2;
+      // R2M8: bye24(y24) + bye25(y25) → center y24.5
+      pos[o.r2+7] = (g(24)          + g(25))        / 2;
+    }
 
-    pos[o.r2 + 4] = (getSlotCenterY(17) + pos[o.r1 + 7]) / 2; // Match 57
-    pos[o.r2 + 5] = (pos[o.r1 + 8] + pos[o.r1 + 9]) / 2; // Match 58
-    pos[o.r2 + 6] = (pos[o.r1 + 10] + pos[o.r1 + 11]) / 2; // Match 59
-    pos[o.r2 + 7] = (pos[o.r1 + 12] + getSlotCenterY(30)) / 2; // Match 60
+    // QF / SF / CF / Final — identical structure for all pools
+    pos[o.r3 + 0] = (pos[o.r2+0] + pos[o.r2+1]) / 2; // QF1
+    pos[o.r3 + 1] = (pos[o.r2+2] + pos[o.r2+3]) / 2; // QF2
+    pos[o.r3 + 2] = (pos[o.r2+4] + pos[o.r2+5]) / 2; // QF3
+    pos[o.r3 + 3] = (pos[o.r2+6] + pos[o.r2+7]) / 2; // QF4
 
-    // Round 3 (Pool Quarter-Finals)
-    pos[o.r3 + 0] = (pos[o.r2 + 0] + pos[o.r2 + 1]) / 2; // Match 85
-    pos[o.r3 + 1] = (pos[o.r2 + 2] + pos[o.r2 + 3]) / 2; // Match 86
-    pos[o.r3 + 2] = (pos[o.r2 + 4] + pos[o.r2 + 5]) / 2; // Match 87
-    pos[o.r3 + 3] = (pos[o.r2 + 6] + pos[o.r2 + 7]) / 2; // Match 88
+    pos[o.r4 + 0] = (pos[o.r3+0] + pos[o.r3+1]) / 2; // SF1
+    pos[o.r4 + 1] = (pos[o.r3+2] + pos[o.r3+3]) / 2; // SF2
 
-    // Round 4 (Pool Semi-Finals)
-    pos[o.r4 + 0] = (pos[o.r3 + 0] + pos[o.r3 + 1]) / 2; // Match 101
-    pos[o.r4 + 1] = (pos[o.r3 + 2] + pos[o.r3 + 3]) / 2; // Match 102
-
-    // Round 5 (Pool Challenger Final)
-    pos[o.r5] = (pos[o.r4 + 0] + pos[o.r4 + 1]) / 2; // Match 109
-
-    // Round 6 (Pool Final / Seed 1 Match)
-    pos[o.final] = (getSlotCenterY(1) + pos[o.r5]) / 2; // Match 113
+    pos[o.r5]   = (pos[o.r4+0] + pos[o.r4+1]) / 2;   // Challenger Final
+    pos[o.final] = (g(1) + pos[o.r5]) / 2;            // Pool Final (Seed vs CF winner)
 
     return pos;
-  }, [poolOffsets]);
+  }, [poolOffsets, activePool]);
 
   // Color schemes
   const isPaper = themeMode === "PAPER";
@@ -584,50 +712,12 @@ export function OfficialPoolBracket({
     else if (activePool === "C") matchInPool = matchNum - 26;
     else if (activePool === "D") matchInPool = matchNum - 39;
 
-    const round1Pair = roundName === "Round 1" && ROUND_1_MATCH_SLOTS[matchInPool] ? ROUND_1_MATCH_SLOTS[matchInPool] : null;
-
-    if (round1Pair) {
-      const poolSlots = (localSlots || []).filter((s: any) => s.pool === activePool);
-      const sA = poolSlots.find((s: any) => s.slot === round1Pair.slotA);
-      const sB = poolSlots.find((s: any) => s.slot === round1Pair.slotB);
-
-      if (sA && sA.teamId) {
-        setPairModalTeam1Input(sA.teamNumber ? String(sA.teamNumber) : sA.teamCode || "");
-        setPairModalTeam1Fetched({
-          id: sA.teamId,
-          teamCode: sA.teamCode,
-          teamNumber: sA.teamNumber,
-          name: sA.teamName,
-          state: sA.state,
-        });
-      } else {
-        setPairModalTeam1Input("");
-        setPairModalTeam1Fetched(null);
-      }
-
-      if (sB && sB.teamId) {
-        setPairModalTeam2Input(sB.teamNumber ? String(sB.teamNumber) : sB.teamCode || "");
-        setPairModalTeam2Fetched({
-          id: sB.teamId,
-          teamCode: sB.teamCode,
-          teamNumber: sB.teamNumber,
-          name: sB.teamName,
-          state: sB.state,
-        });
-      } else {
-        setPairModalTeam2Input("");
-        setPairModalTeam2Fetched(null);
-      }
-      setPairModalError(null);
-    }
-
     setSelectedMatchModal({
       matchNumber: matchNum,
       matchInPool,
       roundName,
       pool: activePool,
       liveInfo,
-      round1Pair,
     });
 
     if (onSelectMatch) {
@@ -649,12 +739,13 @@ export function OfficialPoolBracket({
           isPaper ? "bg-slate-50 border-blue-200" : "bg-[#090F24] border-[#18D8D0]/30"
         }`}
       >
-        {/* Pool Selector Tabs with 25-Team Limit Badges */}
+        {/* Pool Selector Tabs with Pool Limit Badges (26 for A/C, 25 for B/D) */}
         <div className="flex flex-wrap items-center gap-2">
           {(["A", "B", "C", "D"] as const).map((p) => {
             const isSelected = activePool === p;
             const count = poolCounts[p] || 0;
-            const isFull = count >= 25;
+            const poolLimit = (p === "A" || p === "C") ? 26 : 25;
+            const isFull = count >= poolLimit;
             return (
               <button
                 key={p}
@@ -683,7 +774,7 @@ export function OfficialPoolBracket({
                       : "bg-[#101935] text-[#00F0FF]"
                   }`}
                 >
-                  {count}/25
+                  {count}/{poolLimit}
                 </span>
               </button>
             );
@@ -704,6 +795,18 @@ export function OfficialPoolBracket({
             <Trophy className="w-3.5 h-3.5" />
             <span>FINAL 4 / PODIUM</span>
           </button>
+
+          {isAdmin && activePool !== "CHAMPIONSHIP" && (
+            <button
+              onClick={() => handleClearActivePool()}
+              disabled={isClearingPool || (poolCounts[activePool] || 0) === 0}
+              className="px-3.5 py-2 bg-rose-950/40 hover:bg-rose-900/60 disabled:opacity-30 text-rose-300 border border-rose-500/40 font-pixel text-xs uppercase transition-colors rounded-lg shadow flex items-center gap-1.5"
+              title={`Clear all slots in Pool ${activePool}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>CLEAR POOL {activePool}</span>
+            </button>
+          )}
         </div>
 
         {/* View Tools: Theme Toggle, Zoom Controls, Print */}
@@ -796,28 +899,30 @@ export function OfficialPoolBracket({
                   : "bg-[#091228] text-[#00F0FF] border border-[#00F0FF]/30"
               }`}
             >
-              <span>{activePoolCount} / 25 TEAMS</span>
-              <span className="text-[10px] opacity-75">(LIMIT: 25)</span>
+              <span>{activePoolCount} / {maxPoolCapacity} TEAMS</span>
+              <span className="text-[10px] opacity-75">(LIMIT: {maxPoolCapacity})</span>
             </div>
           </div>
           {isActivePoolFull && (
             <div className="text-[11px] font-pixel text-[#FF5A16] bg-[#FF5A16]/10 px-3 py-1 rounded-md border border-[#FF5A16]/30 animate-pulse">
-              POOL {activePool} HAS REACHED ITS OFFICIAL 25-TEAM LIMIT (25/25 FILLED)
+              POOL {activePool} HAS REACHED ITS OFFICIAL {maxPoolCapacity}-TEAM LIMIT ({maxPoolCapacity}/{maxPoolCapacity} FILLED)
             </div>
           )}
 
-          {/* Explanation badge for 25 teams in 30 knockout bracket rows */}
+          {/* Explanation badge — A/C: 26 slots/26 rows, B/D: 25 slots/25 rows */}
           <div className="w-full mt-2 p-2.5 bg-[#070D1E] border border-[#00F0FF]/30 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 bg-[#00F0FF] text-black font-pixel text-[10px] font-bold rounded">
-                25 TEAMS PER POOL
+                {isACPool ? "26" : "25"} SLOTS — POOL {activePool}
               </span>
               <span className="text-slate-300 font-sans text-xs">
-                Each pool strictly has <strong>25 universities</strong>. The 30 bracket rows use standard AIU tournament structure (25 teams + 5 byes) to mathematically balance the single-elimination tree.
+                {isACPool
+                  ? <>Pool {activePool}: <strong>26 team slots</strong> — 9 R1 matches + 7 R1 byes + 1 seed → 16 into R2 → 8 R2 → 4 QF → 2 SF → CF → Final.</>  
+                  : <>Pool {activePool}: <strong>25 team slots</strong> — 8 R1 matches + 8 R1 byes + 1 seed → 16 into R2 → 8 R2 → 4 QF → 2 SF → CF → Final.</>}
               </span>
             </div>
             <span className="font-pixel text-[10px] text-[#05D550]">
-              TOTAL: 100 UNIVERSITIES ACROSS 4 POOLS
+              TOTAL: 102 UNIVERSITIES ACROSS 4 POOLS
             </span>
           </div>
         </div>
@@ -911,7 +1016,7 @@ export function OfficialPoolBracket({
                     />
 
                     {/* Team slot text */}
-                    {isAssigned ? (
+                      {isAssigned ? (
                       <text
                         x={config.startX + 8}
                         y={centerY + 4}
@@ -921,7 +1026,7 @@ export function OfficialPoolBracket({
                         fontFamily="Arial, Helvetica, sans-serif"
                         letterSpacing="0.2px"
                       >
-                        {t.slot}. {t.name}{t.state ? `, ${t.state}` : ""}{t.seed ? ` [Seed #${t.seed}]` : ""}
+                        {globalSlot(t.slot)}. {t.name}{t.state ? `, ${t.state}` : ""}{t.seed ? ` [Seed #${t.seed}]` : ""}
                       </text>
                     ) : (
                       <text
@@ -933,20 +1038,20 @@ export function OfficialPoolBracket({
                         fontFamily="Arial, Helvetica, sans-serif"
                         letterSpacing="0.2px"
                       >
-                        {t.slot}. {t.seed ? `[Seed #${t.seed} Bye] ` : t.isByeR1 ? `[Bye to R2] ` : ""}{isHovered ? "── Click to enter team # ──" : "──"}
+                        {globalSlot(t.slot)}. {t.seed ? `[Seed #${t.seed} Bye] ` : t.isByeR1 ? `[R1 Bye] ` : ""}{isHovered ? "── Click to assign ──" : "──"}
                       </text>
                     )}
 
-                    {/* Horizontal stub line connecting to bracket */}
+                    {/* Horizontal stub: seed→final, R1 byes→R2, others→R1 */}
                     <line
                       x1={config.startX + config.slotWidth}
                       y1={centerY}
                       x2={
                         t.slot === 1
-                          ? config.finalColX // Madras runs across the top to match 113
-                          : [2, 17, 30].includes(t.slot)
-                          ? config.r2ColX // Byes in Round 1 connect to Round 2
-                          : config.r1ColX // Normal slots connect to Round 1
+                          ? config.finalColX
+                          : r1ByeSlotSet.has(t.slot)
+                          ? config.r2ColX
+                          : config.r1ColX
                       }
                       y2={centerY}
                       stroke={isHovered ? colors.highlightLine : colors.lineColor}
@@ -956,22 +1061,12 @@ export function OfficialPoolBracket({
                 );
               })}
 
-              {/* ── 2. ROUND 1 BRACKET LINES & BADGES (MATCHES 1 - 13) ── */}
-              {[
-                { m: poolOffsets.r1 + 0, t1: 3, t2: 4 },
-                { m: poolOffsets.r1 + 1, t1: 5, t2: 6 },
-                { m: poolOffsets.r1 + 2, t1: 7, t2: 8 },
-                { m: poolOffsets.r1 + 3, t1: 9, t2: 10 },
-                { m: poolOffsets.r1 + 4, t1: 11, t2: 12 },
-                { m: poolOffsets.r1 + 5, t1: 13, t2: 14 },
-                { m: poolOffsets.r1 + 6, t1: 15, t2: 16 },
-                { m: poolOffsets.r1 + 7, t1: 18, t2: 19 },
-                { m: poolOffsets.r1 + 8, t1: 20, t2: 21 },
-                { m: poolOffsets.r1 + 9, t1: 22, t2: 23 },
-                { m: poolOffsets.r1 + 10, t1: 24, t2: 25 },
-                { m: poolOffsets.r1 + 11, t1: 26, t2: 27 },
-                { m: poolOffsets.r1 + 12, t1: 28, t2: 29 },
-              ].map(({ m, t1, t2 }) => {
+              {/* ── 2. ROUND 1 BRACKET LINES & BADGES ── */}
+              {/* A/C: 9 R1 pairs (all adjacent) | B/D: 8 R1 pairs (some cross a bye slot) */}
+              {(isACPool ? AC_R1_MATCHES : BD_R1_MATCHES).map(({ slotA, slotB }, idx) => {
+                const m = poolOffsets.r1 + idx;
+                const t1 = slotA;
+                const t2 = slotB;
                 const y1 = getSlotCenterY(t1);
                 const y2 = getSlotCenterY(t2);
                 const midY = matchPositions[m];
@@ -1009,17 +1104,28 @@ export function OfficialPoolBracket({
                 );
               })}
 
-              {/* ── 3. ROUND 2 BRACKET LINES & BADGES (MATCHES 53 - 60) ── */}
-              {[
-                { m: poolOffsets.r2 + 0, topY: getSlotCenterY(2), botY: matchPositions[poolOffsets.r1 + 0] },
-                { m: poolOffsets.r2 + 1, topY: matchPositions[poolOffsets.r1 + 1], botY: matchPositions[poolOffsets.r1 + 2] },
-                { m: poolOffsets.r2 + 2, topY: matchPositions[poolOffsets.r1 + 3], botY: matchPositions[poolOffsets.r1 + 4] },
-                { m: poolOffsets.r2 + 3, topY: matchPositions[poolOffsets.r1 + 5], botY: matchPositions[poolOffsets.r1 + 6] },
-                { m: poolOffsets.r2 + 4, topY: getSlotCenterY(17), botY: matchPositions[poolOffsets.r1 + 7] },
-                { m: poolOffsets.r2 + 5, topY: matchPositions[poolOffsets.r1 + 8], botY: matchPositions[poolOffsets.r1 + 9] },
-                { m: poolOffsets.r2 + 6, topY: matchPositions[poolOffsets.r1 + 10], botY: matchPositions[poolOffsets.r1 + 11] },
-                { m: poolOffsets.r2 + 7, topY: matchPositions[poolOffsets.r1 + 12], botY: getSlotCenterY(30) },
-              ].map(({ m, topY, botY }) => {
+              {/* ── 3. ROUND 2 BRACKET LINES & BADGES (8 matches per pool) ── */}
+              {(isACPool ? [
+                // A/C R2 (strictly matches official tournament handwritten draw)
+                { m: poolOffsets.r2+0, topY: getSlotCenterY(2),              botY: matchPositions[poolOffsets.r1+0] }, // bye2 + M1
+                { m: poolOffsets.r2+1, topY: matchPositions[poolOffsets.r1+1], botY: matchPositions[poolOffsets.r1+2] }, // M2+M3
+                { m: poolOffsets.r2+2, topY: getSlotCenterY(9),              botY: matchPositions[poolOffsets.r1+3] }, // bye9+M4
+                { m: poolOffsets.r2+3, topY: matchPositions[poolOffsets.r1+4], botY: getSlotCenterY(14) },              // M5+bye14
+                { m: poolOffsets.r2+4, topY: getSlotCenterY(15),             botY: matchPositions[poolOffsets.r1+5] }, // bye15+M6
+                { m: poolOffsets.r2+5, topY: matchPositions[poolOffsets.r1+6], botY: getSlotCenterY(20) },              // M7+bye20
+                { m: poolOffsets.r2+6, topY: getSlotCenterY(21),             botY: matchPositions[poolOffsets.r1+7] }, // bye21+M8
+                { m: poolOffsets.r2+7, topY: matchPositions[poolOffsets.r1+8], botY: getSlotCenterY(26) },              // M9+bye26
+              ] : [
+                // B/D R2 — byes between pair-groups, all spans non-zero
+                { m: poolOffsets.r2+0, topY: getSlotCenterY(2),              botY: matchPositions[poolOffsets.r1+0] }, // bye2   + M1
+                { m: poolOffsets.r2+1, topY: matchPositions[poolOffsets.r1+1], botY: getSlotCenterY(7) },              // M2     + bye7
+                { m: poolOffsets.r2+2, topY: matchPositions[poolOffsets.r1+2], botY: matchPositions[poolOffsets.r1+3] }, // M3    + M4
+                { m: poolOffsets.r2+3, topY: getSlotCenterY(12),             botY: matchPositions[poolOffsets.r1+4] }, // bye12  + M5
+                { m: poolOffsets.r2+4, topY: getSlotCenterY(15),             botY: matchPositions[poolOffsets.r1+5] }, // bye15  + M6
+                { m: poolOffsets.r2+5, topY: getSlotCenterY(18),             botY: matchPositions[poolOffsets.r1+6] }, // bye18  + M7
+                { m: poolOffsets.r2+6, topY: getSlotCenterY(21),             botY: matchPositions[poolOffsets.r1+7] }, // bye21  + M8
+                { m: poolOffsets.r2+7, topY: getSlotCenterY(24),             botY: getSlotCenterY(25) },               // bye24  + bye25
+              ]).map(({ m, topY, botY }) => {
                 const midY = matchPositions[m];
 
                 return (
@@ -1055,12 +1161,12 @@ export function OfficialPoolBracket({
                 );
               })}
 
-              {/* ── 4. ROUND 3 (POOL QUARTER-FINALS) (MATCHES 85 - 88) ── */}
+              {/* ── 4. ROUND 3 (POOL QUARTER-FINALS) — same structure for all pools ── */}
               {[
-                { m: poolOffsets.r3 + 0, topM: poolOffsets.r2 + 0, botM: poolOffsets.r2 + 1 },
-                { m: poolOffsets.r3 + 1, topM: poolOffsets.r2 + 2, botM: poolOffsets.r2 + 3 },
-                { m: poolOffsets.r3 + 2, topM: poolOffsets.r2 + 4, botM: poolOffsets.r2 + 5 },
-                { m: poolOffsets.r3 + 3, topM: poolOffsets.r2 + 6, botM: poolOffsets.r2 + 7 },
+                { m: poolOffsets.r3+0, topM: poolOffsets.r2+0, botM: poolOffsets.r2+1 },
+                { m: poolOffsets.r3+1, topM: poolOffsets.r2+2, botM: poolOffsets.r2+3 },
+                { m: poolOffsets.r3+2, topM: poolOffsets.r2+4, botM: poolOffsets.r2+5 },
+                { m: poolOffsets.r3+3, topM: poolOffsets.r2+6, botM: poolOffsets.r2+7 },
               ].map(({ m, topM, botM }) => {
                 const topY = matchPositions[topM];
                 const botY = matchPositions[botM];
@@ -1395,179 +1501,52 @@ export function OfficialPoolBracket({
               </span>
             </div>
 
-            {isAdmin && selectedMatchModal.round1Pair ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-[#1b253b]">
-                  <div>
-                    <h3 className="font-display text-lg font-bold uppercase tracking-tight text-[#f5e6ca]">
-                      ROUND 1 FIXTURE PAIRING &bull; MATCH #{selectedMatchModal.matchInPool}
-                    </h3>
-                    <p className="font-pixel text-[10px] text-[#00F0FF] uppercase mt-0.5">
-                      CONNECTS SLOT #{selectedMatchModal.round1Pair.slotA} VS SLOT #{selectedMatchModal.round1Pair.slotB}
-                    </p>
-                  </div>
-                  {pairModalTeam1Fetched && pairModalTeam2Fetched && (
-                    <button
-                      type="button"
-                      onClick={() => handleClearModalPair(selectedMatchModal.round1Pair.slotA, selectedMatchModal.round1Pair.slotB)}
-                      disabled={pairModalAssigning}
-                      className="px-2.5 py-1 bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/40 font-pixel text-[10px] uppercase rounded"
-                    >
-                      Clear Match
-                    </button>
-                  )}
+            <div className="space-y-4">
+              <h3 className="font-display text-xl font-bold uppercase tracking-tight text-[#f5e6ca]">
+                Match Telemetry &amp; Lineup
+              </h3>
+
+              <div className="space-y-3 p-4 bg-black/20 dark:bg-black/40 rounded-xl border border-blue-900/30 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-pixel text-[10px]">STAGE:</span>
+                  <span className="font-bold text-[#00F0FF]">{selectedMatchModal.roundName}</span>
                 </div>
-
-                {/* The Two Boxes VS Arena */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                  {/* Box 1: Team 1 (Slot A) */}
-                  <div className="md:col-span-5 p-3 rounded-xl bg-black/30 border border-[#00F0FF]/40 space-y-2">
-                    <span className="font-pixel text-[10px] text-[#00F0FF] font-bold uppercase block">
-                      TEAM 1 &bull; SLOT #{selectedMatchModal.round1Pair.slotA}
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Team # (e.g. 1)"
-                        value={pairModalTeam1Input}
-                        onChange={(e) => searchPairTeam1(e.target.value)}
-                        className="w-full bg-[#050A18] border border-[#1b253b] focus:border-[#00F0FF] text-base font-bold font-mono text-[#00F0FF] px-2.5 py-2 rounded-lg focus:outline-none"
-                      />
-                      {pairModalTeam1Fetching && (
-                        <RefreshCw className="w-3.5 h-3.5 text-[#00F0FF] animate-spin absolute right-2.5 top-3" />
-                      )}
-                    </div>
-                    {pairModalTeam1Fetched ? (
-                      <div className="p-2 bg-[#0e162b] rounded border border-[#00F0FF]/30 text-xs">
-                        <strong className="block text-[#f5e6ca] truncate">{pairModalTeam1Fetched.name}</strong>
-                        <span className="text-[10px] text-[#91A0AE]">#{pairModalTeam1Fetched.teamNumber} &bull; {pairModalTeam1Fetched.state}</span>
-                      </div>
-                    ) : (
-                      <div className="text-[10px] text-slate-500 italic">Enter team # to fetch from DB</div>
-                    )}
-                  </div>
-
-                  {/* Center VS */}
-                  <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF5A16] to-[#FF2A6D] text-black font-black font-display text-sm flex items-center justify-center shadow-[0_0_15px_rgba(255,90,22,0.6)]">
-                      VS
-                    </div>
-                  </div>
-
-                  {/* Box 2: Team 2 (Slot B) */}
-                  <div className="md:col-span-5 p-3 rounded-xl bg-black/30 border border-[#FF5A16]/40 space-y-2">
-                    <span className="font-pixel text-[10px] text-[#FF5A16] font-bold uppercase block">
-                      TEAM 2 &bull; SLOT #{selectedMatchModal.round1Pair.slotB}
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Team # (e.g. 2)"
-                        value={pairModalTeam2Input}
-                        onChange={(e) => searchPairTeam2(e.target.value)}
-                        className="w-full bg-[#050A18] border border-[#1b253b] focus:border-[#FF5A16] text-base font-bold font-mono text-[#FF5A16] px-2.5 py-2 rounded-lg focus:outline-none"
-                      />
-                      {pairModalTeam2Fetching && (
-                        <RefreshCw className="w-3.5 h-3.5 text-[#FF5A16] animate-spin absolute right-2.5 top-3" />
-                      )}
-                    </div>
-                    {pairModalTeam2Fetched ? (
-                      <div className="p-2 bg-[#0e162b] rounded border border-[#FF5A16]/30 text-xs">
-                        <strong className="block text-[#f5e6ca] truncate">{pairModalTeam2Fetched.name}</strong>
-                        <span className="text-[10px] text-[#91A0AE]">#{pairModalTeam2Fetched.teamNumber} &bull; {pairModalTeam2Fetched.state}</span>
-                      </div>
-                    ) : (
-                      <div className="text-[10px] text-slate-500 italic">Enter team # to fetch from DB</div>
-                    )}
-                  </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-pixel text-[10px]">POOL:</span>
+                  <span className="font-bold text-[#FF5A16]">POOL {selectedMatchModal.pool}</span>
                 </div>
-
-                {pairModalError && (
-                  <p className="font-pixel text-xs text-rose-400 bg-rose-950/40 p-2.5 rounded border border-rose-500/30">
-                    {pairModalError}
-                  </p>
+                {selectedMatchModal.round1Pair && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 font-pixel text-[10px]">CONNECTS POSITIONS:</span>
+                    <span className="font-mono text-[#f5e6ca]">
+                      Slot #{selectedMatchModal.round1Pair.slotA} vs Slot #{selectedMatchModal.round1Pair.slotB}
+                    </span>
+                  </div>
                 )}
-
-                {/* Modal Buttons */}
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMatchModal(null)}
-                    className="px-3.5 py-2 border rounded-lg font-pixel text-xs text-slate-400 hover:text-white"
-                  >
-                    CLOSE
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/matches/M${String(selectedMatchModal.matchNumber).padStart(3, "0")}`}
-                      className="px-3 py-2 bg-[#1A2644] text-[#00F0FF] border border-[#00F0FF]/30 font-pixel text-xs uppercase rounded flex items-center gap-1"
-                    >
-                      <span>DESK</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-
-                    <button
-                      type="button"
-                      disabled={
-                        !pairModalTeam1Fetched ||
-                        !pairModalTeam2Fetched ||
-                        pairModalAssigning ||
-                        (activePoolCount >= 25 &&
-                          !localSlots.find((s: any) => s.pool === activePool && s.slot === selectedMatchModal.round1Pair.slotA)?.teamId &&
-                          !localSlots.find((s: any) => s.pool === activePool && s.slot === selectedMatchModal.round1Pair.slotB)?.teamId)
-                      }
-                      onClick={() => handleConfirmModalPair(selectedMatchModal.matchNumber, selectedMatchModal.round1Pair.slotA, selectedMatchModal.round1Pair.slotB)}
-                      className="px-4 py-2 bg-[#FF5A16] hover:bg-[#ff6a2d] disabled:opacity-40 text-black font-pixel text-xs font-bold uppercase rounded shadow transition-all flex items-center gap-1.5"
-                    >
-                      {pairModalAssigning && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                      <span>FILL FIXTURE &amp; BRACKET</span>
-                    </button>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-pixel text-[10px]">VENUE:</span>
+                  <span className="font-medium text-slate-200">KLE Tech Indoor Stadium, Hubballi</span>
                 </div>
               </div>
-            ) : (
-              <>
-                <h3 className="font-display text-xl font-bold uppercase tracking-tight mt-2 mb-4">
-                  Match Telemetry &amp; Official Lineup
-                </h3>
 
-                <div className="space-y-3 p-4 bg-black/10 dark:bg-black/30 rounded-xl border border-blue-900/30 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-pixel">STAGE:</span>
-                    <span className="font-bold">{selectedMatchModal.roundName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-pixel">COURT:</span>
-                    <span className="font-bold">Court 01 (Synthetic BWF Mat 1)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-pixel">STATUS:</span>
-                    <span className="font-bold text-amber-500">SCHEDULED / UPCOMING</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-pixel">VENUE:</span>
-                    <span className="font-bold">KLE Tech Indoor Stadium, Hubballi</span>
-                  </div>
-                </div>
+              <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMatchModal(null)}
+                  className="px-4 py-2 border rounded-lg font-pixel text-xs text-slate-400 hover:text-white"
+                >
+                  CLOSE
+                </button>
 
-                <div className="mt-6 flex justify-end gap-3">
-                  <button
-                    onClick={() => setSelectedMatchModal(null)}
-                    className="px-4 py-2 border rounded-lg font-pixel text-xs font-bold"
-                  >
-                    CLOSE
-                  </button>
-                  <Link
-                    href={`/matches/M${String(selectedMatchModal.matchNumber).padStart(3, "0")}`}
-                    className="px-4 py-2 bg-[#FF5A16] text-black font-pixel text-xs font-bold uppercase rounded flex items-center gap-1.5 shadow"
-                  >
-                    <span>OPEN MATCH DESK</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </>
-            )}
+                <Link
+                  href={`/matches/M${String(selectedMatchModal.matchNumber).padStart(3, "0")}`}
+                  className="px-4 py-2 bg-[#FF5A16] text-black font-pixel text-xs font-bold uppercase rounded flex items-center gap-1.5 shadow hover:bg-[#ff6a2d] transition-colors"
+                >
+                  <span>OPEN MATCH DESK</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       )}

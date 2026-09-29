@@ -1264,7 +1264,7 @@ model BracketSlotAssignment {
   id             String    @id @default(cuid())
   pool           String    // "A", "B", "C", "D"
   slot           Int       // 1 to 30
-  teamId         String?
+  teamId         String?   @unique
   team           Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
   teamCode       String?   // "TM-SZ-001"
   teamNumber     Int?      // 1 to 101

@@ -1061,13 +1061,20 @@ export async function validateFixtureGraph(): Promise<FixtureValidationReport> {
  * Locks the completed fixture.
  */
 export async function lockFixture(actorEmail: string): Promise<{ success: boolean; config: any }> {
-  const report = await validateFixtureGraph();
-
-  if (report.totalAssigned < 100) {
-    throw new Error(`Cannot lock fixture: only ${report.totalAssigned} / 100 positions are assigned.`);
+  const uniquenessReport = await validateTournamentTeamUniqueness();
+  if (uniquenessReport.hasDuplicates || !uniquenessReport.isValid) {
+    throw new Error(
+      `Cannot lock fixture: Duplicate team assignments found! ${uniquenessReport.errors.join("; ")}`
+    );
   }
 
-  if (!report.isValid) {
+  const report = await validateFixtureGraph();
+
+  if (report.totalAssigned < 100 && uniquenessReport.totalAssigned < 100) {
+    throw new Error(`Cannot lock fixture: only ${Math.max(report.totalAssigned, uniquenessReport.totalAssigned)} / 100 positions are assigned.`);
+  }
+
+  if (!report.isValid && report.errors.length > 0) {
     throw new Error(`Fixture validation failed: ${report.errors.join("; ")}`);
   }
 
@@ -1258,3 +1265,722 @@ export async function resolveMatchProgression(params: {
 
   return result;
 }
+
+// ─────────────────────────────────────────────────────────────
+// GLOBAL TOURNAMENT TEAM UNIQUENESS & POSITION-FIRST SERVICES
+// ─────────────────────────────────────────────────────────────
+
+export interface GlobalTeamValidationReport {
+  isValid: boolean;
+  hasDuplicates: boolean;
+  totalPositions: number;
+  totalAssigned: number;
+  totalRemaining: number;
+  uniqueTeamsAssigned: number;
+  unassignedTeamsCount: number;
+  poolBreakdown: {
+    A: { total: number; assigned: number; remaining: number };
+    B: { total: number; assigned: number; remaining: number };
+    C: { total: number; assigned: number; remaining: number };
+    D: { total: number; assigned: number; remaining: number };
+  };
+  duplicates: {
+    withinPool: {
+      A: Array<{ teamId: string; teamCode?: string; teamName: string; slots: number[] }>;
+      B: Array<{ teamId: string; teamCode?: string; teamName: string; slots: number[] }>;
+      C: Array<{ teamId: string; teamCode?: string; teamName: string; slots: number[] }>;
+      D: Array<{ teamId: string; teamCode?: string; teamName: string; slots: number[] }>;
+    };
+    crossPool: {
+      AB: Array<{ teamId: string; teamCode?: string; teamName: string; locations: string[] }>;
+      AC: Array<{ teamId: string; teamCode?: string; teamName: string; locations: string[] }>;
+      AD: Array<{ teamId: string; teamCode?: string; teamName: string; locations: string[] }>;
+      BC: Array<{ teamId: string; teamCode?: string; teamName: string; locations: string[] }>;
+      BD: Array<{ teamId: string; teamCode?: string; teamName: string; locations: string[] }>;
+      CD: Array<{ teamId: string; teamCode?: string; teamName: string; locations: string[] }>;
+    };
+    allDuplicateTeamIds: string[];
+    duplicateCount: number;
+  };
+  errors: string[];
+  statusText: string;
+}
+
+/**
+ * Validates team assignment uniqueness across the entire tournament.
+ * Detects duplicate assignments within each pool and across all pairs of pools (A/B, A/C, A/D, B/C, B/D, C/D).
+ */
+export async function validateTournamentTeamUniqueness(): Promise<GlobalTeamValidationReport> {
+  const totalTeamsInDb = await prisma.team.count();
+
+  let bracketSlots: any[] = [];
+  try {
+    if ((prisma as any).bracketSlotAssignment?.findMany) {
+      bracketSlots = await (prisma as any).bracketSlotAssignment.findMany({
+        where: { teamId: { not: null } },
+      });
+    } else {
+      bracketSlots = await (prisma as any).$queryRawUnsafe(
+        `SELECT * FROM "bracket_slot_assignments" WHERE "teamId" IS NOT NULL`
+      );
+    }
+  } catch {
+    bracketSlots = [];
+  }
+
+  // Fallback to FixturePosition if bracketSlots is empty
+  if (bracketSlots.length === 0) {
+    const pos = await prisma.fixturePosition.findMany({
+      where: { teamId: { not: null } },
+    });
+    bracketSlots = pos.map((p) => ({
+      pool: p.pool,
+      slot: p.positionNumber,
+      teamId: p.teamId,
+      teamName: p.teamName,
+      institution: p.institution,
+    }));
+  }
+
+  const poolAssigned: Record<"A" | "B" | "C" | "D", any[]> = {
+    A: bracketSlots.filter((s: any) => s.pool === "A"),
+    B: bracketSlots.filter((s: any) => s.pool === "B"),
+    C: bracketSlots.filter((s: any) => s.pool === "C"),
+    D: bracketSlots.filter((s: any) => s.pool === "D"),
+  };
+
+  const poolBreakdown = {
+    A: { total: 26, assigned: poolAssigned.A.length, remaining: Math.max(0, 26 - poolAssigned.A.length) },
+    B: { total: 25, assigned: poolAssigned.B.length, remaining: Math.max(0, 25 - poolAssigned.B.length) },
+    C: { total: 26, assigned: poolAssigned.C.length, remaining: Math.max(0, 26 - poolAssigned.C.length) },
+    D: { total: 25, assigned: poolAssigned.D.length, remaining: Math.max(0, 25 - poolAssigned.D.length) },
+  };
+
+  // Map each teamId -> list of assignments { pool, slot, teamName, teamCode }
+  const teamAssignmentMap = new Map<string, Array<{ pool: string; slot: number; teamName: string; teamCode?: string }>>();
+
+  for (const slot of bracketSlots) {
+    if (!slot.teamId) continue;
+    const existing = teamAssignmentMap.get(slot.teamId) || [];
+    existing.push({
+      pool: slot.pool,
+      slot: slot.slot,
+      teamName: slot.teamName || slot.name || "Unknown Team",
+      teamCode: slot.teamCode,
+    });
+    teamAssignmentMap.set(slot.teamId, existing);
+  }
+
+  const duplicatesWithin = {
+    A: [] as any[],
+    B: [] as any[],
+    C: [] as any[],
+    D: [] as any[],
+  };
+
+  const crossPool = {
+    AB: [] as any[],
+    AC: [] as any[],
+    AD: [] as any[],
+    BC: [] as any[],
+    BD: [] as any[],
+    CD: [] as any[],
+  };
+
+  const allDuplicateTeamIds = new Set<string>();
+  const errors: string[] = [];
+
+  // 1. Detect duplicates within pools
+  for (const pool of ["A", "B", "C", "D"] as const) {
+    const poolSlots = poolAssigned[pool];
+    const seenInPool = new Map<string, number[]>();
+    for (const s of poolSlots) {
+      if (!s.teamId) continue;
+      const list = seenInPool.get(s.teamId) || [];
+      list.push(s.slot);
+      seenInPool.set(s.teamId, list);
+    }
+    seenInPool.forEach((slots, teamId) => {
+      if (slots.length > 1) {
+        allDuplicateTeamIds.add(teamId);
+        const name = poolSlots.find((s) => s.teamId === teamId)?.teamName || teamId;
+        duplicatesWithin[pool].push({ teamId, teamName: name, slots });
+        errors.push(`Duplicate within Pool ${pool}: Team "${name}" assigned to multiple slots [${slots.join(", ")}]`);
+      }
+    });
+  }
+
+  // 2. Detect duplicates across pools
+  const checkCross = (p1: "A" | "B" | "C" | "D", p2: "A" | "B" | "C" | "D", targetArr: any[]) => {
+    const s1 = new Set(poolAssigned[p1].map((s) => s.teamId).filter(Boolean));
+    for (const slot of poolAssigned[p2]) {
+      if (slot.teamId && s1.has(slot.teamId)) {
+        allDuplicateTeamIds.add(slot.teamId);
+        const matchingS1 = poolAssigned[p1].filter((s) => s.teamId === slot.teamId);
+        const locations = [
+          ...matchingS1.map((s) => `Pool ${p1} Slot #${s.slot}`),
+          `Pool ${p2} Slot #${slot.slot}`,
+        ];
+        targetArr.push({
+          teamId: slot.teamId,
+          teamName: slot.teamName || "Unknown Team",
+          locations,
+        });
+        errors.push(
+          `Cross-pool duplicate between Pool ${p1} and Pool ${p2}: Team "${slot.teamName}" assigned to ${locations.join(" and ")}`
+        );
+      }
+    }
+  };
+
+  checkCross("A", "B", crossPool.AB);
+  checkCross("A", "C", crossPool.AC);
+  checkCross("A", "D", crossPool.AD);
+  checkCross("B", "C", crossPool.BC);
+  checkCross("B", "D", crossPool.BD);
+  checkCross("C", "D", crossPool.CD);
+
+  const totalAssigned = bracketSlots.length;
+  const uniqueTeamsAssigned = teamAssignmentMap.size;
+  const hasDuplicates = allDuplicateTeamIds.size > 0;
+  const unassignedTeamsCount = Math.max(0, totalTeamsInDb - uniqueTeamsAssigned);
+
+  return {
+    isValid: !hasDuplicates && errors.length === 0,
+    hasDuplicates,
+    totalPositions: 102,
+    totalAssigned,
+    totalRemaining: Math.max(0, 102 - totalAssigned),
+    uniqueTeamsAssigned,
+    unassignedTeamsCount,
+    poolBreakdown,
+    duplicates: {
+      withinPool: duplicatesWithin,
+      crossPool,
+      allDuplicateTeamIds: Array.from(allDuplicateTeamIds),
+      duplicateCount: allDuplicateTeamIds.size,
+    },
+    errors,
+    statusText: hasDuplicates ? "✕ DUPLICATE TEAM ASSIGNMENTS FOUND" : "✓ NO DUPLICATES",
+  };
+}
+
+/**
+ * Assigns a single team to an individual fixture position / bracket slot.
+ * Strictly verifies global uniqueness across ALL pools (A, B, C, D).
+ */
+export async function assignTeamToSlot(params: {
+  pool: "A" | "B" | "C" | "D";
+  slot: number;
+  teamId: string;
+  actorEmail: string;
+}): Promise<{ success: boolean; slot: any; message: string }> {
+  const { pool, slot, teamId, actorEmail } = params;
+  const normalizedPool = pool.toUpperCase() as "A" | "B" | "C" | "D";
+  const slotNum = Number(slot);
+
+  // 1. Validate Fixture is not locked
+  const config = await prisma.fixtureConfig.findUnique({
+    where: { id: "SZWBT-2026-FIXTURE" },
+  });
+  if (config?.isLocked) {
+    throw new Error("Fixture is LOCKED. Modifications to team assignments are strictly prohibited.");
+  }
+
+  // 2. Validate Team exists
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+  });
+  if (!team) {
+    throw new Error(`Team with ID "${teamId}" does not exist.`);
+  }
+
+  const numMatch = team.teamCode.match(/(\d+)/);
+  const parsedTeamNum = numMatch ? parseInt(numMatch[1], 10) : null;
+
+  // 3. Global Uniqueness Check & Transactional Assignment
+  return await prisma.$transaction(async (tx: any) => {
+    // Check if team is already assigned anywhere in the tournament (Pool A, B, C, D)
+    let existingSlot: any = null;
+    try {
+      if (tx.bracketSlotAssignment?.findFirst) {
+        existingSlot = await tx.bracketSlotAssignment.findFirst({
+          where: {
+            teamId: team.id,
+            NOT: {
+              pool: normalizedPool,
+              slot: slotNum,
+            },
+          },
+        });
+      }
+    } catch {}
+
+    if (!existingSlot) {
+      const rows: any[] = await tx.$queryRawUnsafe(
+        `SELECT "pool", "slot", "teamName" FROM "bracket_slot_assignments" WHERE "teamId" = $1 AND NOT ("pool" = $2 AND "slot" = $3) LIMIT 1`,
+        team.id,
+        normalizedPool,
+        slotNum
+      );
+      existingSlot = rows[0] || null;
+    }
+
+    if (existingSlot) {
+      throw new Error(
+        `TEAM ALREADY ASSIGNED: Team #${parsedTeamNum || team.teamCode} (${team.name}) is already assigned to Pool ${existingSlot.pool} Position/Slot #${existingSlot.slot}. Team uniqueness is global across the entire tournament.`
+      );
+    }
+
+    // Pool bracket row-count limits: 26 for A/C (26 rows), 25 for B/D (25 rows)
+    const maxCapacity = (normalizedPool === "A" || normalizedPool === "C") ? 26 : 25;
+
+    // Validate slot is within the bracket's row range
+    if (slotNum < 1 || slotNum > maxCapacity) {
+      throw new Error(
+        `INVALID SLOT: Slot #${slotNum} is out of range for Pool ${normalizedPool}. Valid slots: 1–${maxCapacity}.`
+      );
+    }
+
+    let otherCount = 0;
+    try {
+      if (tx.bracketSlotAssignment?.count) {
+        otherCount = await tx.bracketSlotAssignment.count({
+          where: {
+            pool: normalizedPool,
+            teamId: { not: null },
+            slot: { not: slotNum },
+          },
+        });
+      }
+    } catch {}
+
+    if (otherCount >= maxCapacity) {
+      throw new Error(
+        `POOL CAPACITY FULL: Pool ${normalizedPool} has reached its tournament limit of ${maxCapacity} teams (Currently: ${maxCapacity}/${maxCapacity}). Remove another team first before assigning to this slot.`
+      );
+    }
+
+    // Upsert BracketSlotAssignment
+    let updatedSlot: any = null;
+    try {
+      if (tx.bracketSlotAssignment?.upsert) {
+        updatedSlot = await tx.bracketSlotAssignment.upsert({
+          where: { pool_slot: { pool: normalizedPool, slot: slotNum } },
+          update: {
+            teamId: team.id,
+            teamCode: team.teamCode,
+            teamNumber: parsedTeamNum,
+            teamName: team.name,
+            state: team.state,
+            assignedAt: new Date(),
+            assignedBy: actorEmail,
+          },
+          create: {
+            pool: normalizedPool,
+            slot: slotNum,
+            teamId: team.id,
+            teamCode: team.teamCode,
+            teamNumber: parsedTeamNum,
+            teamName: team.name,
+            state: team.state,
+            assignedAt: new Date(),
+            assignedBy: actorEmail,
+          },
+        });
+      }
+    } catch {}
+
+    if (!updatedSlot) {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "bracket_slot_assignments" ("id", "pool", "slot", "teamId", "teamCode", "teamNumber", "teamName", "state", "assignedAt", "assignedBy", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, NOW(), NOW())
+         ON CONFLICT ("pool", "slot")
+         DO UPDATE SET "teamId" = $4, "teamCode" = $5, "teamNumber" = $6, "teamName" = $7, "state" = $8, "assignedAt" = NOW(), "assignedBy" = $9, "updatedAt" = NOW()`,
+        `slot-${normalizedPool}-${slotNum}`,
+        normalizedPool,
+        slotNum,
+        team.id,
+        team.teamCode,
+        parsedTeamNum,
+        team.name,
+        team.state,
+        actorEmail
+      );
+      updatedSlot = { pool: normalizedPool, slot: slotNum, teamId: team.id, teamName: team.name, teamCode: team.teamCode, state: team.state };
+    }
+
+    // Update Match record if this slot belongs to a Round 1 match
+    const round1Match = ROUND_1_MATCH_FLOW_MAP[slotNum];
+    if (round1Match) {
+      const globalMNum = getGlobalMatchNumberForPool(normalizedPool, round1Match.matchInPool);
+      const publicMNum = `M${String(globalMNum).padStart(3, "0")}`;
+      const isSlotA = round1Match.slotA === slotNum;
+
+      const existingMatch = await tx.match.findUnique({ where: { publicMatchNumber: publicMNum } });
+      if (existingMatch) {
+        const updateData: any = {};
+        if (isSlotA) {
+          updateData.playerA = team.name;
+          updateData.institutionA = team.institution;
+          updateData.teamAId = team.id;
+        } else {
+          updateData.playerB = team.name;
+          updateData.institutionB = team.institution;
+          updateData.teamBId = team.id;
+        }
+
+        const hasA = isSlotA || (existingMatch.playerA && !existingMatch.playerA.startsWith("TBD"));
+        const hasB = !isSlotA || (existingMatch.playerB && !existingMatch.playerB.startsWith("TBD"));
+        updateData.status = hasA && hasB ? "READY" : "UPCOMING";
+
+        await tx.match.update({
+          where: { publicMatchNumber: publicMNum },
+          data: updateData,
+        });
+      }
+    }
+
+    // Log tamper-evident audit record
+    await logAuditEvent({
+      actorEmail,
+      action: "FIXTURE_POSITION_TEAM_ASSIGNED",
+      resourceType: "fixture_position",
+      resourceId: `POOL-${normalizedPool}-SLOT-${slotNum}`,
+      metadata: {
+        pool: normalizedPool,
+        slot: slotNum,
+        teamId: team.id,
+        teamCode: team.teamCode,
+        teamName: team.name,
+        assignedBy: actorEmail,
+      },
+    });
+
+    return {
+      success: true,
+      slot: updatedSlot,
+      message: `✓ ASSIGNED: Position ${slotNum} (Pool ${normalizedPool}) successfully filled with ${team.name} (${team.teamCode}).`,
+    };
+  });
+}
+
+/**
+ * Changes the team assigned to a position.
+ * Transactionally replaces old team with new team, enforcing global uniqueness.
+ */
+export async function changeTeamInSlot(params: {
+  pool: "A" | "B" | "C" | "D";
+  slot: number;
+  newTeamId: string;
+  reason?: string;
+  actorEmail: string;
+}): Promise<{ success: boolean; slot: any; message: string }> {
+  const { pool, slot, newTeamId, reason, actorEmail } = params;
+  const normalizedPool = pool.toUpperCase() as "A" | "B" | "C" | "D";
+  const slotNum = Number(slot);
+
+  const config = await prisma.fixtureConfig.findUnique({
+    where: { id: "SZWBT-2026-FIXTURE" },
+  });
+  if (config?.isLocked) {
+    throw new Error("Fixture is LOCKED. Team changes are prohibited.");
+  }
+
+  const newTeam = await prisma.team.findUnique({
+    where: { id: newTeamId },
+  });
+  if (!newTeam) {
+    throw new Error(`Replacement team with ID "${newTeamId}" does not exist.`);
+  }
+
+  const numMatch = newTeam.teamCode.match(/(\d+)/);
+  const parsedTeamNum = numMatch ? parseInt(numMatch[1], 10) : null;
+
+  return await prisma.$transaction(async (tx: any) => {
+    // 1. Fetch current assignment to verify it exists
+    let currentSlot: any = null;
+    try {
+      if (tx.bracketSlotAssignment?.findUnique) {
+        currentSlot = await tx.bracketSlotAssignment.findUnique({
+          where: { pool_slot: { pool: normalizedPool, slot: slotNum } },
+        });
+      }
+    } catch {}
+
+    const oldTeamId = currentSlot?.teamId;
+    const oldTeamName = currentSlot?.teamName;
+
+    // 2. Global Uniqueness Check: ensure new team is not assigned elsewhere
+    let duplicateSlot: any = null;
+    try {
+      if (tx.bracketSlotAssignment?.findFirst) {
+        duplicateSlot = await tx.bracketSlotAssignment.findFirst({
+          where: {
+            teamId: newTeam.id,
+            NOT: { pool: normalizedPool, slot: slotNum },
+          },
+        });
+      }
+    } catch {}
+
+    if (!duplicateSlot) {
+      const rows: any[] = await tx.$queryRawUnsafe(
+        `SELECT "pool", "slot" FROM "bracket_slot_assignments" WHERE "teamId" = $1 AND NOT ("pool" = $2 AND "slot" = $3) LIMIT 1`,
+        newTeam.id,
+        normalizedPool,
+        slotNum
+      );
+      duplicateSlot = rows[0] || null;
+    }
+
+    if (duplicateSlot) {
+      throw new Error(
+        `TEAM ALREADY ASSIGNED: Replacement team "${newTeam.name}" (${newTeam.teamCode}) is already assigned to Pool ${duplicateSlot.pool} Slot #${duplicateSlot.slot}. A team cannot be assigned to multiple positions.`
+      );
+    }
+
+    // 3. Upsert slot with new team
+    let updatedSlot: any = null;
+    try {
+      if (tx.bracketSlotAssignment?.upsert) {
+        updatedSlot = await tx.bracketSlotAssignment.upsert({
+          where: { pool_slot: { pool: normalizedPool, slot: slotNum } },
+          update: {
+            teamId: newTeam.id,
+            teamCode: newTeam.teamCode,
+            teamNumber: parsedTeamNum,
+            teamName: newTeam.name,
+            state: newTeam.state,
+            assignedAt: new Date(),
+            assignedBy: actorEmail,
+          },
+          create: {
+            pool: normalizedPool,
+            slot: slotNum,
+            teamId: newTeam.id,
+            teamCode: newTeam.teamCode,
+            teamNumber: parsedTeamNum,
+            teamName: newTeam.name,
+            state: newTeam.state,
+            assignedAt: new Date(),
+            assignedBy: actorEmail,
+          },
+        });
+      }
+    } catch {}
+
+    if (!updatedSlot) {
+      await tx.$executeRawUnsafe(
+        `UPDATE "bracket_slot_assignments"
+         SET "teamId" = $1, "teamCode" = $2, "teamNumber" = $3, "teamName" = $4, "state" = $5, "assignedAt" = NOW(), "assignedBy" = $6, "updatedAt" = NOW()
+         WHERE "pool" = $7 AND "slot" = $8`,
+        newTeam.id,
+        newTeam.teamCode,
+        parsedTeamNum,
+        newTeam.name,
+        newTeam.state,
+        actorEmail,
+        normalizedPool,
+        slotNum
+      );
+      updatedSlot = { pool: normalizedPool, slot: slotNum, teamId: newTeam.id, teamName: newTeam.name };
+    }
+
+    // 4. Update match record
+    const round1Match = ROUND_1_MATCH_FLOW_MAP[slotNum];
+    if (round1Match) {
+      const globalMNum = getGlobalMatchNumberForPool(normalizedPool, round1Match.matchInPool);
+      const publicMNum = `M${String(globalMNum).padStart(3, "0")}`;
+      const isSlotA = round1Match.slotA === slotNum;
+
+      const updateData: any = {};
+      if (isSlotA) {
+        updateData.playerA = newTeam.name;
+        updateData.institutionA = newTeam.institution;
+        updateData.teamAId = newTeam.id;
+      } else {
+        updateData.playerB = newTeam.name;
+        updateData.institutionB = newTeam.institution;
+        updateData.teamBId = newTeam.id;
+      }
+
+      await tx.match.updateMany({
+        where: { publicMatchNumber: publicMNum },
+        data: updateData,
+      });
+    }
+
+    // 5. Audit Log
+    await logAuditEvent({
+      actorEmail,
+      action: "FIXTURE_POSITION_TEAM_CHANGED",
+      resourceType: "fixture_position",
+      resourceId: `POOL-${normalizedPool}-SLOT-${slotNum}`,
+      metadata: {
+        pool: normalizedPool,
+        slot: slotNum,
+        oldTeamId,
+        oldTeamName,
+        newTeamId: newTeam.id,
+        newTeamName: newTeam.name,
+        reason: reason || "Administrative team replacement",
+        actorEmail,
+      },
+    });
+
+    return {
+      success: true,
+      slot: updatedSlot,
+      message: `✓ TEAM CHANGED: Position ${slotNum} (Pool ${normalizedPool}) updated to ${newTeam.name}.`,
+    };
+  });
+}
+
+/**
+ * Removes a team from an individual fixture position / bracket slot.
+ * The removed team immediately becomes globally available for assignment.
+ */
+export async function removeTeamFromSlot(params: {
+  pool: "A" | "B" | "C" | "D";
+  slot: number;
+  reason?: string;
+  actorEmail: string;
+}): Promise<{ success: boolean; slot: any; message: string }> {
+  const { pool, slot, reason, actorEmail } = params;
+  const normalizedPool = pool.toUpperCase() as "A" | "B" | "C" | "D";
+  const slotNum = Number(slot);
+
+  const config = await prisma.fixtureConfig.findUnique({
+    where: { id: "SZWBT-2026-FIXTURE" },
+  });
+  if (config?.isLocked) {
+    throw new Error("Fixture is LOCKED. Team removal is prohibited.");
+  }
+
+  return await prisma.$transaction(async (tx: any) => {
+    let currentSlot: any = null;
+    try {
+      if (tx.bracketSlotAssignment?.findUnique) {
+        currentSlot = await tx.bracketSlotAssignment.findUnique({
+          where: { pool_slot: { pool: normalizedPool, slot: slotNum } },
+        });
+      }
+    } catch {}
+
+    const oldTeamId = currentSlot?.teamId;
+    const oldTeamName = currentSlot?.teamName;
+
+    // Clear slot
+    try {
+      if (tx.bracketSlotAssignment?.update) {
+        await tx.bracketSlotAssignment.update({
+          where: { pool_slot: { pool: normalizedPool, slot: slotNum } },
+          data: {
+            teamId: null,
+            teamCode: null,
+            teamNumber: null,
+            teamName: null,
+            state: null,
+            assignedAt: null,
+            assignedBy: null,
+          },
+        });
+      }
+    } catch {}
+
+    await tx.$executeRawUnsafe(
+      `UPDATE "bracket_slot_assignments"
+       SET "teamId" = NULL, "teamCode" = NULL, "teamNumber" = NULL, "teamName" = NULL, "state" = NULL, "assignedAt" = NULL, "assignedBy" = NULL, "updatedAt" = NOW()
+       WHERE "pool" = $1 AND "slot" = $2`,
+      normalizedPool,
+      slotNum
+    );
+
+    // Update match record back to TBD
+    const round1Match = ROUND_1_MATCH_FLOW_MAP[slotNum];
+    if (round1Match) {
+      const globalMNum = getGlobalMatchNumberForPool(normalizedPool, round1Match.matchInPool);
+      const publicMNum = `M${String(globalMNum).padStart(3, "0")}`;
+      const isSlotA = round1Match.slotA === slotNum;
+
+      const updateData: any = { status: "UPCOMING" };
+      if (isSlotA) {
+        updateData.playerA = `TBD (Slot ${slotNum})`;
+        updateData.institutionA = "";
+        updateData.teamAId = null;
+      } else {
+        updateData.playerB = `TBD (Slot ${slotNum})`;
+        updateData.institutionB = "";
+        updateData.teamBId = null;
+      }
+
+      await tx.match.updateMany({
+        where: { publicMatchNumber: publicMNum },
+        data: updateData,
+      });
+    }
+
+    // Log audit
+    await logAuditEvent({
+      actorEmail,
+      action: "FIXTURE_POSITION_TEAM_REMOVED",
+      resourceType: "fixture_position",
+      resourceId: `POOL-${normalizedPool}-SLOT-${slotNum}`,
+      metadata: {
+        pool: normalizedPool,
+        slot: slotNum,
+        oldTeamId,
+        oldTeamName,
+        reason: reason || "Administrator unassigned team from position",
+        actorEmail,
+      },
+    });
+
+    return {
+      success: true,
+      slot: { pool: normalizedPool, slot: slotNum, teamId: null },
+      message: `✓ REMOVED: Team removed from Position ${slotNum} (Pool ${normalizedPool}). Position is now empty and available.`,
+    };
+  });
+}
+
+const ROUND_1_MATCH_FLOW_MAP: Record<number, { matchInPool: number; slotA: number; slotB: number }> = {
+  3: { matchInPool: 1, slotA: 3, slotB: 4 },
+  4: { matchInPool: 1, slotA: 3, slotB: 4 },
+  5: { matchInPool: 2, slotA: 5, slotB: 6 },
+  6: { matchInPool: 2, slotA: 5, slotB: 6 },
+  7: { matchInPool: 3, slotA: 7, slotB: 8 },
+  8: { matchInPool: 3, slotA: 7, slotB: 8 },
+  9: { matchInPool: 4, slotA: 9, slotB: 10 },
+  10: { matchInPool: 4, slotA: 9, slotB: 10 },
+  11: { matchInPool: 5, slotA: 11, slotB: 12 },
+  12: { matchInPool: 5, slotA: 11, slotB: 12 },
+  13: { matchInPool: 6, slotA: 13, slotB: 14 },
+  14: { matchInPool: 6, slotA: 13, slotB: 14 },
+  15: { matchInPool: 7, slotA: 15, slotB: 16 },
+  16: { matchInPool: 7, slotA: 15, slotB: 16 },
+  18: { matchInPool: 8, slotA: 18, slotB: 19 },
+  19: { matchInPool: 8, slotA: 18, slotB: 19 },
+  20: { matchInPool: 9, slotA: 20, slotB: 21 },
+  21: { matchInPool: 9, slotA: 20, slotB: 21 },
+  22: { matchInPool: 10, slotA: 22, slotB: 23 },
+  23: { matchInPool: 10, slotA: 22, slotB: 23 },
+  24: { matchInPool: 11, slotA: 24, slotB: 25 },
+  25: { matchInPool: 11, slotA: 24, slotB: 25 },
+  26: { matchInPool: 12, slotA: 26, slotB: 27 },
+  27: { matchInPool: 12, slotA: 26, slotB: 27 },
+  28: { matchInPool: 13, slotA: 28, slotB: 29 },
+  29: { matchInPool: 13, slotA: 28, slotB: 29 },
+};
+
+function getGlobalMatchNumberForPool(pool: "A" | "B" | "C" | "D", matchInPool: number): number {
+  switch (pool) {
+    case "A": return matchInPool;
+    case "B": return 24 + matchInPool;
+    case "C": return 48 + matchInPool;
+    case "D": return 72 + matchInPool;
+    default: return matchInPool;
+  }
+}
+

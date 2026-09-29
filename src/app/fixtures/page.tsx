@@ -35,18 +35,33 @@ export default function PublicFixturesPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const retryCountRef = React.useRef(0);
 
   const fetchFixtures = useCallback(async (isManual = false) => {
     try {
-      if (isManual) setRefreshing(true);
+      if (isManual) {
+        setRefreshing(true);
+        retryCountRef.current = 0;
+      }
+      setFetchError(null);
       const res = await fetch("/api/tournament/fixtures");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
         setFixturesData(data.data);
         setLastUpdated(new Date());
+        retryCountRef.current = 0;
       }
-    } catch (err) {
-      console.error("Error fetching fixtures:", err);
+    } catch (err: any) {
+      const isNetworkError = err instanceof TypeError && err.message.includes("fetch");
+      if (isNetworkError && retryCountRef.current < 5) {
+        retryCountRef.current += 1;
+        const delay = retryCountRef.current * 2000;
+        setTimeout(() => fetchFixtures(false), delay);
+      } else {
+        setFetchError(isNetworkError ? "Cannot reach the server. Is the dev server running?" : err.message);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -96,7 +111,7 @@ export default function PublicFixturesPage() {
       (s: any) =>
         (activePool === "ALL" || activePool === "CHAMPIONSHIP" ? true : s.pool === activePool) &&
         s.teamId &&
-        s.slot <= 25
+        s.slot <= ((s.pool === "A" || s.pool === "C") ? 26 : 25)
     )
     .sort((a: any, b: any) => a.pool.localeCompare(b.pool) || a.slot - b.slot);
 

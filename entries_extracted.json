@@ -1,0 +1,512 @@
+[
+  {
+    "num": 1,
+    "name": "Acharya Nagarjuna University, Guntur",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 2,
+    "name": "Adikavi Nannaya University, Rajamahendravaram",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 3,
+    "name": "Adikavi Shri Maharshi Valmiki University, Raichur",
+    "state": "Karnataka"
+  },
+  {
+    "num": 4,
+    "name": "Alagappa University, Karaikudi",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 5,
+    "name": "Amrita Vishwavidyapeetham, Coimbatore",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 6,
+    "name": "Andhra University, Visakhapattanam",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 7,
+    "name": "Anna University, Chennai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 8,
+    "name": "Annamalai University, Chidambaram",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 9,
+    "name": "APJ Abdul Kalam University, Tiruvananthpuram",
+    "state": "Kerala"
+  },
+  {
+    "num": 10,
+    "name": "B S Abdur Rehman Cresent Institute of Science & Technology",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 11,
+    "name": "Bagalkot University, Jamakhandi",
+    "state": "Karnataka"
+  },
+  {
+    "num": 12,
+    "name": "Bangalore University, Bangaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 13,
+    "name": "Bengaluru North University, Kolar",
+    "state": "Karnataka"
+  },
+  {
+    "num": 14,
+    "name": "Bharathiar University, Coimbatore",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 15,
+    "name": "Bharathidasan University, Tiruchirapalli",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 16,
+    "name": "Central University of Karnataka, Gulbarga",
+    "state": "Karnataka"
+  },
+  {
+    "num": 17,
+    "name": "Central University of Tamilnadu",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 18,
+    "name": "Chamarajnagara University, Chamarajnagara",
+    "state": "Karnataka"
+  },
+  {
+    "num": 19,
+    "name": "Chanakya University, Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 20,
+    "name": "Chinmay Vishwa Vidyapeetham",
+    "state": "Kerala"
+  },
+  {
+    "num": 21,
+    "name": "Christ Deemed to be University, Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 22,
+    "name": "Coachin University of Science & Technology, Coachin",
+    "state": "Kerala"
+  },
+  {
+    "num": 23,
+    "name": "Davangere University, Davangere",
+    "state": "Karnataka"
+  },
+  {
+    "num": 24,
+    "name": "Dr. Manmohan Singh Bengaluru City University, Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 25,
+    "name": "Dr. MGR Educational & Research institute",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 26,
+    "name": "Dr. NTR university of Health Sciences, Vijayawada",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 27,
+    "name": "Dravidian University",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 28,
+    "name": "GITAM Deemed to be University, Visakhapatnam",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 29,
+    "name": "Gulbarga University, Gulbarga",
+    "state": "Karnataka"
+  },
+  {
+    "num": 30,
+    "name": "Hassan University, Hassan",
+    "state": "Karnataka"
+  },
+  {
+    "num": 31,
+    "name": "Haveri University, Haveri",
+    "state": "Karnataka"
+  },
+  {
+    "num": 32,
+    "name": "Hindustan Institute of Technology & Science, Chennai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 33,
+    "name": "Indian Institute of Technology, Madras, Chennai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 34,
+    "name": "Jawaharlal Nehru Technological University, Ananthpura",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 35,
+    "name": "Jawaharlal Nehru Technological University, Gurujada Vizianagaram",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 36,
+    "name": "Jawaharlal Nehru Technological University, Hyderbad",
+    "state": "Telangana"
+  },
+  {
+    "num": 37,
+    "name": "Jawaharlal Nehru Technological University, Kakinada",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 38,
+    "name": "JSS Academy of Higher Education & Research, Mysuru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 39,
+    "name": "Kakatiya University, Warangal",
+    "state": "Telangana"
+  },
+  {
+    "num": 40,
+    "name": "Kannur University, Kannur",
+    "state": "Kerala"
+  },
+  {
+    "num": 41,
+    "name": "Karnatak University, Dharwad",
+    "state": "Karnataka"
+  },
+  {
+    "num": 42,
+    "name": "Karnataka Sate Law University, Hubballi",
+    "state": "Karnataka"
+  },
+  {
+    "num": 43,
+    "name": "Karnataka State Akkamahadevi University, Vijayapura",
+    "state": "Karnataka"
+  },
+  {
+    "num": 44,
+    "name": "Kerala Agricultural University,",
+    "state": "Kerala"
+  },
+  {
+    "num": 45,
+    "name": "Kerala University of Health Sciences, Thrissur",
+    "state": "Kerala"
+  },
+  {
+    "num": 46,
+    "name": "Kitturu Rani Channamma University, Belagavi",
+    "state": "Karnataka"
+  },
+  {
+    "num": 47,
+    "name": "KLE Academy of Higher Education & Research (Deemed to be University)",
+    "state": "Karnataka"
+  },
+  {
+    "num": 48,
+    "name": "KLE Technological University, Hubballi",
+    "state": "Karnataka"
+  },
+  {
+    "num": 49,
+    "name": "Krishna University, Machalipattanam",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 50,
+    "name": "Kristu Jayanti Deemed to be University, Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 51,
+    "name": "Kuvempu University, Shivamogga",
+    "state": "Karnataka"
+  },
+  {
+    "num": 52,
+    "name": "Madurai Kamaraj University, Madurai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 53,
+    "name": "Maharani Cluster University, Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 54,
+    "name": "Malla Reddy Vishwavidyapeeth Deemed to be University, Hyderabad",
+    "state": "Telangana"
+  },
+  {
+    "num": 55,
+    "name": "Mangalore University, Mangaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 56,
+    "name": "Manipal Academy of Higher Education, Manipal",
+    "state": "Karnataka"
+  },
+  {
+    "num": 57,
+    "name": "Manonmaniam Sundaranar University, Tirunalveli",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 58,
+    "name": "Mohan Babu University, Tirupati",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 59,
+    "name": "Mother Teresa Women’s University, Kodaikanal",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 60,
+    "name": "Nitte Deemed to be University, Mangaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 61,
+    "name": "Osmania University, Hyderabad",
+    "state": "Telangana"
+  },
+  {
+    "num": 62,
+    "name": "Periyar University, Salem",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 63,
+    "name": "PES University, Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 64,
+    "name": "Pondicherry University, Puducherry",
+    "state": "Puducherry"
+  },
+  {
+    "num": 65,
+    "name": "Presidency University, Bangaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 66,
+    "name": "Rajiv Gandhi University of Health Sciences, Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 67,
+    "name": "Rayalaseema University, Karnool",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 68,
+    "name": "Reva University, Bangaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 69,
+    "name": "RV University, Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 70,
+    "name": "SASTRA University",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 71,
+    "name": "Saveetha Institute of Medical & technical Sciences, Chennai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 72,
+    "name": "Shri Dharmasthala Manjunatheshwara University, Dharwad",
+    "state": "Karnataka"
+  },
+  {
+    "num": 73,
+    "name": "Siddharth Academy of Higher Education,Deemed to be University, Vijayawada",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 74,
+    "name": "Sree Sankaracharya University of Sanskrit, Kalady",
+    "state": "Kerala"
+  },
+  {
+    "num": 75,
+    "name": "Sri Krishnadevaraya University, Anantapura",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 76,
+    "name": "Sri Venkateshwar University, Tirupati",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 77,
+    "name": "St. Joseph University, Chennai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 78,
+    "name": "Tamilnadu Physical Education & Sports University, Chennai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 79,
+    "name": "Telangana University",
+    "state": "Telangana"
+  },
+  {
+    "num": 80,
+    "name": "The Apollo University",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 81,
+    "name": "The Tamilnadu Dr. Ambedkar Law University, Chennai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 82,
+    "name": "Thiruvalluvar University, Vellore",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 83,
+    "name": "Tumkur University, Tumkur",
+    "state": "Karnataka"
+  },
+  {
+    "num": 84,
+    "name": "University of Agricultural Sciences, Dharwad",
+    "state": "Karnatak"
+  },
+  {
+    "num": 85,
+    "name": "University of Calicut, Calicut",
+    "state": "Kerala"
+  },
+  {
+    "num": 86,
+    "name": "University of Hyderabad, Hyderabad",
+    "state": "Telangana"
+  },
+  {
+    "num": 87,
+    "name": "University of Kerala",
+    "state": "Kerala"
+  },
+  {
+    "num": 88,
+    "name": "University of Madras, Chennai",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 89,
+    "name": "University of Mysore, Mysuru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 90,
+    "name": "Vellore Institute of Technology, Katapadi",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 91,
+    "name": "Vighnan's foundation of Science",
+    "state": "Andhra pradesh"
+  },
+  {
+    "num": 92,
+    "name": "Vijayanagara Sri Krishnadevaraya University, Ballari",
+    "state": "Karnataka"
+  },
+  {
+    "num": 93,
+    "name": "Vikram Simhapuri University, Nellore",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 94,
+    "name": "Vinayak Mission Research Foundation",
+    "state": "Tamilnadu"
+  },
+  {
+    "num": 95,
+    "name": "Vishweshwarayya Technological University, Belagavi",
+    "state": "Karnataka"
+  },
+  {
+    "num": 96,
+    "name": "VIT- AP University, Vijayawada",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 97,
+    "name": "Woxen University, Hydrabad",
+    "state": "Telanagana"
+  },
+  {
+    "num": 98,
+    "name": "Yogi Veman University, Kadapa",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 99,
+    "name": "Jain Deemed to be University, Bangaluru",
+    "state": "Karnataka"
+  },
+  {
+    "num": 100,
+    "name": "Mahatma Gandhi University, Kottayam",
+    "state": "Kerala"
+  },
+  {
+    "num": 101,
+    "name": "KLEF Deemed to be University, Vaddeshwaram",
+    "state": "Andhra Pradesh"
+  },
+  {
+    "num": 102,
+    "name": "SRM Institute of Science & Technology University, Kottankulathur",
+    "state": "Tamilnadu"
+  }
+]
