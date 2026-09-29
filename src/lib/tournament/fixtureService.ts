@@ -7,6 +7,10 @@ import {
   getCanonicalDrawSequence,
 } from "./fixtureTemplate";
 import { logAuditEvent } from "@/lib/rbac/audit";
+import {
+  ROUND_1_MATCH_FLOW_AC,
+  ROUND_1_MATCH_FLOW_BD,
+} from "./fixtureConstants";
 
 export interface FixtureValidationReport {
   isValid: boolean;
@@ -1611,7 +1615,7 @@ export async function assignTeamToSlot(params: {
     }
 
     // Update Match record if this slot belongs to a Round 1 match
-    const round1Match = ROUND_1_MATCH_FLOW_MAP[slotNum];
+    const round1Match = getR1MatchForSlot(normalizedPool, slotNum);
     if (round1Match) {
       const globalMNum = getGlobalMatchNumberForPool(normalizedPool, round1Match.matchInPool);
       const publicMNum = `M${String(globalMNum).padStart(3, "0")}`;
@@ -1788,7 +1792,7 @@ export async function changeTeamInSlot(params: {
     }
 
     // 4. Update match record
-    const round1Match = ROUND_1_MATCH_FLOW_MAP[slotNum];
+    const round1Match = getR1MatchForSlot(normalizedPool, slotNum);
     if (round1Match) {
       const globalMNum = getGlobalMatchNumberForPool(normalizedPool, round1Match.matchInPool);
       const publicMNum = `M${String(globalMNum).padStart(3, "0")}`;
@@ -1898,7 +1902,7 @@ export async function removeTeamFromSlot(params: {
     );
 
     // Update match record back to TBD
-    const round1Match = ROUND_1_MATCH_FLOW_MAP[slotNum];
+    const round1Match = getR1MatchForSlot(normalizedPool, slotNum);
     if (round1Match) {
       const globalMNum = getGlobalMatchNumberForPool(normalizedPool, round1Match.matchInPool);
       const publicMNum = `M${String(globalMNum).padStart(3, "0")}`;
@@ -1945,34 +1949,17 @@ export async function removeTeamFromSlot(params: {
   });
 }
 
-const ROUND_1_MATCH_FLOW_MAP: Record<number, { matchInPool: number; slotA: number; slotB: number }> = {
-  3: { matchInPool: 1, slotA: 3, slotB: 4 },
-  4: { matchInPool: 1, slotA: 3, slotB: 4 },
-  5: { matchInPool: 2, slotA: 5, slotB: 6 },
-  6: { matchInPool: 2, slotA: 5, slotB: 6 },
-  7: { matchInPool: 3, slotA: 7, slotB: 8 },
-  8: { matchInPool: 3, slotA: 7, slotB: 8 },
-  9: { matchInPool: 4, slotA: 9, slotB: 10 },
-  10: { matchInPool: 4, slotA: 9, slotB: 10 },
-  11: { matchInPool: 5, slotA: 11, slotB: 12 },
-  12: { matchInPool: 5, slotA: 11, slotB: 12 },
-  13: { matchInPool: 6, slotA: 13, slotB: 14 },
-  14: { matchInPool: 6, slotA: 13, slotB: 14 },
-  15: { matchInPool: 7, slotA: 15, slotB: 16 },
-  16: { matchInPool: 7, slotA: 15, slotB: 16 },
-  18: { matchInPool: 8, slotA: 18, slotB: 19 },
-  19: { matchInPool: 8, slotA: 18, slotB: 19 },
-  20: { matchInPool: 9, slotA: 20, slotB: 21 },
-  21: { matchInPool: 9, slotA: 20, slotB: 21 },
-  22: { matchInPool: 10, slotA: 22, slotB: 23 },
-  23: { matchInPool: 10, slotA: 22, slotB: 23 },
-  24: { matchInPool: 11, slotA: 24, slotB: 25 },
-  25: { matchInPool: 11, slotA: 24, slotB: 25 },
-  26: { matchInPool: 12, slotA: 26, slotB: 27 },
-  27: { matchInPool: 12, slotA: 26, slotB: 27 },
-  28: { matchInPool: 13, slotA: 28, slotB: 29 },
-  29: { matchInPool: 13, slotA: 28, slotB: 29 },
-};
+function getR1MatchForSlot(pool: "A" | "B" | "C" | "D", slotNum: number) {
+  const isAC = pool === "A" || pool === "C";
+  const flow = isAC ? ROUND_1_MATCH_FLOW_AC : ROUND_1_MATCH_FLOW_BD;
+  const match = flow.find((m) => m.slotA === slotNum || m.slotB === slotNum);
+  if (!match) return null;
+  return {
+    matchInPool: match.matchInPool,
+    slotA: match.slotA,
+    slotB: match.slotB,
+  };
+}
 
 function getGlobalMatchNumberForPool(pool: "A" | "B" | "C" | "D", matchInPool: number): number {
   switch (pool) {

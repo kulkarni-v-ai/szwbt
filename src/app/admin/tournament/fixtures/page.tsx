@@ -39,6 +39,8 @@ import { OfficialPoolBracket } from "@/components/tournament/OfficialPoolBracket
 import {
   ROUND_1_MATCH_FLOW,
   BYE_SLOT_OPTIONS,
+  getR1MatchFlow,
+  getByeSlots,
   getGlobalMatchNumber,
 } from "@/lib/tournament/fixtureConstants";
 
@@ -165,16 +167,18 @@ export default function AdminFixturesPage() {
     const slots = bracketSlots.filter((s: any) => s.pool === activePool);
     const result = [];
 
-    // Identify which slots are byes / seeds
-    const byeMap = new Map(BYE_SLOT_OPTIONS.map((b) => [b.slot, b]));
+    // Identify which slots are byes / seeds for this specific pool
+    const byeOptions = getByeSlots(activePool);
+    const byeMap = new Map(byeOptions.map((b) => [b.slot, b]));
     const totalSlotsForPool = (activePool === "A" || activePool === "C") ? 26 : 25;
+    const poolR1Flow = getR1MatchFlow(activePool);
 
     for (let slotNum = 1; slotNum <= totalSlotsForPool; slotNum++) {
       const existingSlot = slots.find((s: any) => s.slot === slotNum);
       const byeInfo = byeMap.get(slotNum);
 
       // Find match in Round 1 that uses this slot
-      const r1Match = ROUND_1_MATCH_FLOW.find((m) => m.slotA === slotNum || m.slotB === slotNum);
+      const r1Match = poolR1Flow.find((m) => m.slotA === slotNum || m.slotB === slotNum);
       let matchLabel = "-";
       let opponentSlot = null;
       if (r1Match) {
@@ -182,7 +186,8 @@ export default function AdminFixturesPage() {
         matchLabel = `Match ${r1Match.matchInPool} (M${String(globalMNum).padStart(3, "0")})`;
         opponentSlot = r1Match.slotA === slotNum ? r1Match.slotB : r1Match.slotA;
       } else if (byeInfo) {
-        matchLabel = byeInfo.isSeed ? "Seed 1 (Pool Final)" : "Round 1 Bye (R2)";
+        const seedNum = activePool === "A" ? 1 : activePool === "B" ? 2 : activePool === "C" ? 3 : 4;
+        matchLabel = byeInfo.isSeed ? `Seed #${seedNum} (Pool Final)` : "Round 1 Bye (R2)";
       }
 
       // Check if opponent is assigned

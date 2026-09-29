@@ -10,15 +10,21 @@ interface ExcelEntry {
   state: string;
 }
 
-// B/D Pool R1 match flow (8 matches per pool)
+// B/D Pool R1 match flow (8 matches per pool — strictly matching official handwritten bracket)
+// 4 sections of 6 rows with byes at top and bottom:
+// Section 1 (rows 1-6):   Bye 1,  Pairs (2,3),   (4,5),   Bye 6
+// Section 2 (rows 7-12):  Bye 7,  Pairs (8,9),   (10,11), Bye 12
+// Section 3 (rows 13-18): Bye 13, Pairs (14,15), (16,17), Bye 18
+// Section 4 (rows 19-24): Bye 19, Pairs (20,21), (22,23), Bye 24
+// Row 25: Seed with direct bye to Pool Final!
 const BD_R1_MATCHES = [
-  { matchInPool: 1, slotA: 3,  slotB: 4  },
-  { matchInPool: 2, slotA: 5,  slotB: 6  },
+  { matchInPool: 1, slotA: 2,  slotB: 3  },
+  { matchInPool: 2, slotA: 4,  slotB: 5  },
   { matchInPool: 3, slotA: 8,  slotB: 9  },
   { matchInPool: 4, slotA: 10, slotB: 11 },
-  { matchInPool: 5, slotA: 13, slotB: 14 },
+  { matchInPool: 5, slotA: 14, slotB: 15 },
   { matchInPool: 6, slotA: 16, slotB: 17 },
-  { matchInPool: 7, slotA: 19, slotB: 20 },
+  { matchInPool: 7, slotA: 20, slotB: 21 },
   { matchInPool: 8, slotA: 22, slotB: 23 },
 ];
 
@@ -36,7 +42,7 @@ const AC_R1_MATCHES = [
 ];
 
 const AC_BYE_SLOTS = [2, 9, 14, 15, 20, 21, 26];
-const BD_BYE_SLOTS = [2, 7, 12, 15, 18, 21, 24, 25];
+const BD_BYE_SLOTS = [1, 6, 7, 12, 13, 18, 19, 24];
 
 async function main() {
   console.log("====================================================================");
@@ -173,12 +179,11 @@ async function main() {
     const isAC = pool === "A" || pool === "C";
     const byeSlots = isAC ? AC_BYE_SLOTS : BD_BYE_SLOTS;
 
-    const isByeToFinal = slot === 1;
+    const isByeToFinal = isAC ? slot === 1 : slot === 25;
     const isByeR1 = byeSlots.includes(slot);
-    const seed =
-      slot === 1
-        ? pool === "A" ? 1 : pool === "B" ? 2 : pool === "C" ? 3 : 4
-        : null;
+    const seed = isAC
+      ? (slot === 1 ? (pool === "A" ? 1 : 3) : null)
+      : (slot === 25 ? (pool === "B" ? 2 : 4) : null);
 
     const slotRecord = await prisma.bracketSlotAssignment.create({
       data: {

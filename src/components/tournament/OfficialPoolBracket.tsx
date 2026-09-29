@@ -47,22 +47,24 @@ export interface PoolBracketProps {
   onSlotAssigned?: () => void;
 }
 
-// ── B/D Pool bracket (25 rows): 1 seed + 8 R1 byes + 8 R1 matches = 25 ──
-// Pattern: SEED | BYE | PAIR | PAIR | BYE | PAIR | PAIR | BYE | PAIR | BYE | PAIR | BYE | PAIR | BYE | PAIR | BYE | BYE
-// Byes sit BETWEEN pair-groups, never inside a pair.
-// Bye slots: 2, 7, 12, 15, 18, 21, 24, 25
-// R1 pairs (all strictly adjacent): (3,4) (5,6) (8,9) (10,11) (13,14) (16,17) (19,20) (22,23)
+// ── B/D Pool bracket (25 rows): strictly matches official handwritten bracket ──
+// 4 sections of 6 rows each with byes at top and bottom:
+// Section 1 (rows 1-6):   Bye 1,  Pairs: (2,3),   (4,5),   Bye 6
+// Section 2 (rows 7-12):  Bye 7,  Pairs: (8,9),   (10,11), Bye 12
+// Section 3 (rows 13-18): Bye 13, Pairs: (14,15), (16,17), Bye 18
+// Section 4 (rows 19-24): Bye 19, Pairs: (20,21), (22,23), Bye 24
+// Row 25: Seed with direct bye to Pool Final!
 export const BD_R1_MATCHES = [
-  { slotA: 3,  slotB: 4  },  // M1
-  { slotA: 5,  slotB: 6  },  // M2
+  { slotA: 2,  slotB: 3  },  // M1
+  { slotA: 4,  slotB: 5  },  // M2
   { slotA: 8,  slotB: 9  },  // M3
   { slotA: 10, slotB: 11 },  // M4
-  { slotA: 13, slotB: 14 },  // M5
+  { slotA: 14, slotB: 15 },  // M5
   { slotA: 16, slotB: 17 },  // M6
-  { slotA: 19, slotB: 20 },  // M7
+  { slotA: 20, slotB: 21 },  // M7
   { slotA: 22, slotB: 23 },  // M8
 ];
-export const BD_R1_BYE_SLOTS = [2, 7, 12, 15, 18, 21, 24, 25];
+export const BD_R1_BYE_SLOTS = [1, 6, 7, 12, 13, 18, 19, 24];
 
 // ── A/C Pool bracket (26 rows): 1 seed + 7 R1 byes + 9 R1 matches = 26 ──
 // Strictly matches official tournament handwritten draw:
@@ -528,12 +530,11 @@ export function OfficialPoolBracket({
 
     for (let slotNum = 1; slotNum <= rowCount; slotNum++) {
       const assigned = slotMap.get(slotNum);
-      const isByeToFinal = slotNum === 1;
+      const isByeToFinal = isAC ? slotNum === 1 : slotNum === 25;
       const isByeR1 = byeSet.has(slotNum);
-      const seed =
-        slotNum === 1
-          ? activePool === "A" ? 1 : activePool === "B" ? 2 : activePool === "C" ? 3 : 4
-          : undefined;
+      const seed = isAC
+        ? (slotNum === 1 ? (activePool === "A" ? 1 : 3) : undefined)
+        : (slotNum === 25 ? (activePool === "B" ? 2 : 4) : undefined);
 
       slots.push({
         slot: slotNum,
@@ -640,34 +641,31 @@ export function OfficialPoolBracket({
       pos[o.r2 + 6] = (g(21)          + pos[o.r1+7]) / 2; // bye21  + M8
       pos[o.r2 + 7] = (pos[o.r1+8]   + g(26))        / 2; // M9     + bye26
     } else {
-      // B/D: 8 adjacent R1 pairs — byes sit BETWEEN pair-groups, never inside
-      // Byes at: 2, 7, 12, 15, 18, 21, 24, 25
-      pos[o.r1+0] = (g(3)  + g(4))  / 2; // M1: (3,4)   → y3.5
-      pos[o.r1+1] = (g(5)  + g(6))  / 2; // M2: (5,6)   → y5.5
-      pos[o.r1+2] = (g(8)  + g(9))  / 2; // M3: (8,9)   → y8.5
-      pos[o.r1+3] = (g(10) + g(11)) / 2; // M4: (10,11) → y10.5
-      pos[o.r1+4] = (g(13) + g(14)) / 2; // M5: (13,14) → y13.5
-      pos[o.r1+5] = (g(16) + g(17)) / 2; // M6: (16,17) → y16.5
-      pos[o.r1+6] = (g(19) + g(20)) / 2; // M7: (19,20) → y19.5
-      pos[o.r1+7] = (g(22) + g(23)) / 2; // M8: (22,23) → y22.5
+      // B/D: 8 adjacent R1 pairs strictly matching official handwritten bracket
+      // 4 sections of 6 rows, byes at top and bottom of each section:
+      // Section 1 (rows 1-6):   Bye 1,  Pairs (2,3),   (4,5),   Bye 6
+      // Section 2 (rows 7-12):  Bye 7,  Pairs (8,9),   (10,11), Bye 12
+      // Section 3 (rows 13-18): Bye 13, Pairs (14,15), (16,17), Bye 18
+      // Section 4 (rows 19-24): Bye 19, Pairs (20,21), (22,23), Bye 24
+      // Row 25: Seed with direct bye to Pool Final!
+      pos[o.r1+0] = (g(2)  + g(3))  / 2; // M1: (2,3)
+      pos[o.r1+1] = (g(4)  + g(5))  / 2; // M2: (4,5)
+      pos[o.r1+2] = (g(8)  + g(9))  / 2; // M3: (8,9)
+      pos[o.r1+3] = (g(10) + g(11)) / 2; // M4: (10,11)
+      pos[o.r1+4] = (g(14) + g(15)) / 2; // M5: (14,15)
+      pos[o.r1+5] = (g(16) + g(17)) / 2; // M6: (16,17)
+      pos[o.r1+6] = (g(20) + g(21)) / 2; // M7: (20,21)
+      pos[o.r1+7] = (g(22) + g(23)) / 2; // M8: (22,23)
 
-      // B/D R2 (8 matches) — byes between groups, all spans non-zero:
-      // R2M1: bye2(y2)   + M1(y3.5)  → center y2.75
-      pos[o.r2+0] = (g(2)           + pos[o.r1+0]) / 2;
-      // R2M2: M2(y5.5)   + bye7(y7)  → center y6.25
-      pos[o.r2+1] = (pos[o.r1+1]   + g(7))         / 2;
-      // R2M3: M3(y8.5)   + M4(y10.5) → center y9.5
-      pos[o.r2+2] = (pos[o.r1+2]   + pos[o.r1+3]) / 2;
-      // R2M4: bye12(y12) + M5(y13.5) → center y12.75
-      pos[o.r2+3] = (g(12)          + pos[o.r1+4]) / 2;
-      // R2M5: bye15(y15) + M6(y16.5) → center y15.75
-      pos[o.r2+4] = (g(15)          + pos[o.r1+5]) / 2;
-      // R2M6: bye18(y18) + M7(y19.5) → center y18.75
-      pos[o.r2+5] = (g(18)          + pos[o.r1+6]) / 2;
-      // R2M7: bye21(y21) + M8(y22.5) → center y21.75
-      pos[o.r2+6] = (g(21)          + pos[o.r1+7]) / 2;
-      // R2M8: bye24(y24) + bye25(y25) → center y24.5
-      pos[o.r2+7] = (g(24)          + g(25))        / 2;
+      // B/D R2 (8 matches):
+      pos[o.r2+0] = (g(1)           + pos[o.r1+0]) / 2; // bye1  + M1
+      pos[o.r2+1] = (pos[o.r1+1]   + g(6))         / 2; // M2    + bye6
+      pos[o.r2+2] = (g(7)           + pos[o.r1+2]) / 2; // bye7  + M3
+      pos[o.r2+3] = (pos[o.r1+3]   + g(12))        / 2; // M4    + bye12
+      pos[o.r2+4] = (g(13)          + pos[o.r1+4]) / 2; // bye13 + M5
+      pos[o.r2+5] = (pos[o.r1+5]   + g(18))        / 2; // M6    + bye18
+      pos[o.r2+6] = (g(19)          + pos[o.r1+6]) / 2; // bye19 + M7
+      pos[o.r2+7] = (pos[o.r1+7]   + g(24))        / 2; // M8    + bye24
     }
 
     // QF / SF / CF / Final — identical structure for all pools
@@ -680,7 +678,7 @@ export function OfficialPoolBracket({
     pos[o.r4 + 1] = (pos[o.r3+2] + pos[o.r3+3]) / 2; // SF2
 
     pos[o.r5]   = (pos[o.r4+0] + pos[o.r4+1]) / 2;   // Challenger Final
-    pos[o.final] = (g(1) + pos[o.r5]) / 2;            // Pool Final (Seed vs CF winner)
+    pos[o.final] = isAC ? (g(1) + pos[o.r5]) / 2 : (pos[o.r5] + g(25)) / 2; // Pool Final (Seed vs CF winner)
 
     return pos;
   }, [poolOffsets, activePool]);
@@ -1047,7 +1045,7 @@ export function OfficialPoolBracket({
                       x1={config.startX + config.slotWidth}
                       y1={centerY}
                       x2={
-                        t.slot === 1
+                        t.isByeToFinal
                           ? config.finalColX
                           : r1ByeSlotSet.has(t.slot)
                           ? config.r2ColX
@@ -1116,15 +1114,15 @@ export function OfficialPoolBracket({
                 { m: poolOffsets.r2+6, topY: getSlotCenterY(21),             botY: matchPositions[poolOffsets.r1+7] }, // bye21+M8
                 { m: poolOffsets.r2+7, topY: matchPositions[poolOffsets.r1+8], botY: getSlotCenterY(26) },              // M9+bye26
               ] : [
-                // B/D R2 — byes between pair-groups, all spans non-zero
-                { m: poolOffsets.r2+0, topY: getSlotCenterY(2),              botY: matchPositions[poolOffsets.r1+0] }, // bye2   + M1
-                { m: poolOffsets.r2+1, topY: matchPositions[poolOffsets.r1+1], botY: getSlotCenterY(7) },              // M2     + bye7
-                { m: poolOffsets.r2+2, topY: matchPositions[poolOffsets.r1+2], botY: matchPositions[poolOffsets.r1+3] }, // M3    + M4
-                { m: poolOffsets.r2+3, topY: getSlotCenterY(12),             botY: matchPositions[poolOffsets.r1+4] }, // bye12  + M5
-                { m: poolOffsets.r2+4, topY: getSlotCenterY(15),             botY: matchPositions[poolOffsets.r1+5] }, // bye15  + M6
-                { m: poolOffsets.r2+5, topY: getSlotCenterY(18),             botY: matchPositions[poolOffsets.r1+6] }, // bye18  + M7
-                { m: poolOffsets.r2+6, topY: getSlotCenterY(21),             botY: matchPositions[poolOffsets.r1+7] }, // bye21  + M8
-                { m: poolOffsets.r2+7, topY: getSlotCenterY(24),             botY: getSlotCenterY(25) },               // bye24  + bye25
+                // B/D R2 (strictly matches official tournament handwritten draw)
+                { m: poolOffsets.r2+0, topY: getSlotCenterY(1),              botY: matchPositions[poolOffsets.r1+0] }, // bye1  + M1
+                { m: poolOffsets.r2+1, topY: matchPositions[poolOffsets.r1+1], botY: getSlotCenterY(6) },              // M2    + bye6
+                { m: poolOffsets.r2+2, topY: getSlotCenterY(7),              botY: matchPositions[poolOffsets.r1+2] }, // bye7  + M3
+                { m: poolOffsets.r2+3, topY: matchPositions[poolOffsets.r1+3], botY: getSlotCenterY(12) },             // M4    + bye12
+                { m: poolOffsets.r2+4, topY: getSlotCenterY(13),             botY: matchPositions[poolOffsets.r1+4] }, // bye13 + M5
+                { m: poolOffsets.r2+5, topY: matchPositions[poolOffsets.r1+5], botY: getSlotCenterY(18) },             // M6    + bye18
+                { m: poolOffsets.r2+6, topY: getSlotCenterY(19),             botY: matchPositions[poolOffsets.r1+6] }, // bye19 + M7
+                { m: poolOffsets.r2+7, topY: matchPositions[poolOffsets.r1+7], botY: getSlotCenterY(24) },             // M8    + bye24
               ]).map(({ m, topY, botY }) => {
                 const midY = matchPositions[m];
 
@@ -1278,11 +1276,11 @@ export function OfficialPoolBracket({
                 );
               })()}
 
-              {/* ── 7. ROUND 6: POOL FINAL (MATCH 113) & SEED 1 BYE LINE ── */}
+              {/* ── 7. ROUND 6: POOL FINAL (MATCH 113/114/115/116) & SEED BYE LINE ── */}
               {(() => {
                 const m = poolOffsets.final;
-                const topY = getSlotCenterY(1); // University of Madras bye line
-                const botY = matchPositions[poolOffsets.r5]; // Winner of 109
+                const topY = isACPool ? getSlotCenterY(1) : matchPositions[poolOffsets.r5];
+                const botY = isACPool ? matchPositions[poolOffsets.r5] : getSlotCenterY(25);
                 const midY = matchPositions[m];
 
                 return (

@@ -23,14 +23,20 @@
 // Total: A(26) + B(25) + C(26) + D(25) = 102 universities
 // ─────────────────────────────────────────────────────────────
 
-// B/D Pool R1 match flow (8 matches per pool)
+// B/D Pool R1 match flow (8 matches per pool — strictly matches official handwritten bracket)
+// 4 sections of 6 rows with byes at top and bottom:
+// Section 1 (rows 1-6):   Bye 1,  Pairs (2,3),   (4,5),   Bye 6
+// Section 2 (rows 7-12):  Bye 7,  Pairs (8,9),   (10,11), Bye 12
+// Section 3 (rows 13-18): Bye 13, Pairs (14,15), (16,17), Bye 18
+// Section 4 (rows 19-24): Bye 19, Pairs (20,21), (22,23), Bye 24
+// Row 25: Seed with direct bye to Pool Final
 export const ROUND_1_MATCH_FLOW_BD = [
-  { index: 0, matchInPool: 1, slotA: 3,  slotB: 4,  label: "Match 1" },
-  { index: 1, matchInPool: 2, slotA: 5,  slotB: 7,  label: "Match 2" }, // crosses bye-6
+  { index: 0, matchInPool: 1, slotA: 2,  slotB: 3,  label: "Match 1" },
+  { index: 1, matchInPool: 2, slotA: 4,  slotB: 5,  label: "Match 2" },
   { index: 2, matchInPool: 3, slotA: 8,  slotB: 9,  label: "Match 3" },
-  { index: 3, matchInPool: 4, slotA: 10, slotB: 12, label: "Match 4" }, // crosses bye-11
-  { index: 4, matchInPool: 5, slotA: 13, slotB: 15, label: "Match 5" }, // crosses bye-14
-  { index: 5, matchInPool: 6, slotA: 16, slotB: 18, label: "Match 6" }, // crosses bye-17
+  { index: 3, matchInPool: 4, slotA: 10, slotB: 11, label: "Match 4" },
+  { index: 4, matchInPool: 5, slotA: 14, slotB: 15, label: "Match 5" },
+  { index: 5, matchInPool: 6, slotA: 16, slotB: 17, label: "Match 6" },
   { index: 6, matchInPool: 7, slotA: 20, slotB: 21, label: "Match 7" },
   { index: 7, matchInPool: 8, slotA: 22, slotB: 23, label: "Match 8" },
 ];
@@ -54,15 +60,15 @@ export const ROUND_1_MATCH_FLOW = ROUND_1_MATCH_FLOW_BD;
 // ─── R1 Bye Slot Definitions ────────────────────────────────
 
 export const BYE_SLOT_OPTIONS_BD = [
-  { slot: 1,  label: "Slot 1: Seed — Direct to Pool Final (Round 6)", isSeed: true  },
-  { slot: 2,  label: "Slot 2: R1 Bye → advances to R2",               isSeed: false },
+  { slot: 1,  label: "Slot 1: R1 Bye → advances to R2",               isSeed: false },
   { slot: 6,  label: "Slot 6: R1 Bye → advances to R2",               isSeed: false },
-  { slot: 11, label: "Slot 11: R1 Bye → advances to R2",              isSeed: false },
-  { slot: 14, label: "Slot 14: R1 Bye → advances to R2",              isSeed: false },
-  { slot: 17, label: "Slot 17: R1 Bye → advances to R2",              isSeed: false },
+  { slot: 7,  label: "Slot 7: R1 Bye → advances to R2",               isSeed: false },
+  { slot: 12, label: "Slot 12: R1 Bye → advances to R2",              isSeed: false },
+  { slot: 13, label: "Slot 13: R1 Bye → advances to R2",              isSeed: false },
+  { slot: 18, label: "Slot 18: R1 Bye → advances to R2",              isSeed: false },
   { slot: 19, label: "Slot 19: R1 Bye → advances to R2",              isSeed: false },
   { slot: 24, label: "Slot 24: R1 Bye → advances to R2",              isSeed: false },
-  { slot: 25, label: "Slot 25: R1 Bye → advances to R2",              isSeed: false },
+  { slot: 25, label: "Slot 25: Seed — Direct to Pool Final (Round 6)", isSeed: true  },
 ];
 
 export const BYE_SLOT_OPTIONS_AC = [
