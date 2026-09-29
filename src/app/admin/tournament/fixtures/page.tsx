@@ -746,6 +746,18 @@ export default function AdminFixturesPage() {
                     </button>
                   );
                 })}
+
+                <Link
+                  href="/admin/tournament/teams"
+                  className="px-3.5 py-2 font-pixel text-xs sm:text-sm uppercase font-bold rounded-lg transition-all flex items-center gap-1.5 text-zinc-400 hover:text-white bg-[#0e162b] border border-[#1b253b] hover:border-[#00F0FF]/50"
+                  title="View all 102 teams roster (15 teams per page)"
+                >
+                  <Users className="w-3.5 h-3.5 text-[#00F0FF]" />
+                  <span>ALL TEAMS</span>
+                  <span className="text-xs px-2 py-0.5 rounded font-mono font-bold bg-[#101935] text-[#00F0FF]">
+                    102
+                  </span>
+                </Link>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">

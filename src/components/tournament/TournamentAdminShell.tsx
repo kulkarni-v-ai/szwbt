@@ -22,6 +22,7 @@ import {
   X,
   LogOut,
   RefreshCw,
+  Users,
 } from "lucide-react";
 
 interface TournamentAdminShellProps {
@@ -83,6 +84,7 @@ export function TournamentAdminShell({ children, activeTab }: TournamentAdminShe
   const navTabs = [
     { label: "COMMAND DECK", href: "/admin/tournament", icon: LayoutGrid, key: "overview" },
     { label: "FIXTURES & DRAW", href: "/admin/tournament/fixtures", icon: Trophy, key: "fixtures" },
+    { label: "ALL TEAMS", href: "/admin/tournament/teams", icon: Users, key: "teams" },
     { label: "SETTINGS", href: "/admin/tournament/settings", icon: Settings, key: "settings" },
     { label: "CATEGORIES", href: "/admin/tournament/categories", icon: Layers, key: "categories" },
     { label: "EVENTS", href: "/admin/tournament/events", icon: Trophy, key: "events" },
