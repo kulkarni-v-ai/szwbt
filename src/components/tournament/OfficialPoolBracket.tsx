@@ -22,6 +22,7 @@ import {
   X,
   RefreshCw,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 
 export type PoolCode = "A" | "B" | "C" | "D" | "CHAMPIONSHIP";
@@ -451,9 +452,15 @@ export function OfficialPoolBracket({
     const duplicate = (localSlots || []).find(
       (s: any) => s.teamId === fetchedTeam.id && !(s.pool === activePool && s.slot === assignModalSlot.slot)
     );
-    if (duplicate) {
+    const isAssignedElsewhere = Boolean(
+      (fetchedTeam.isAssigned || duplicate) &&
+      !(fetchedTeam.assignedPool === activePool && fetchedTeam.assignedSlot === assignModalSlot.slot)
+    );
+    if (duplicate || isAssignedElsewhere) {
+      const dupPool = duplicate?.pool || fetchedTeam.assignedPool || activePool;
+      const dupSlot = duplicate?.slot || fetchedTeam.assignedSlot || "-";
       setAssignError(
-        `Team #${fetchedTeam.teamNumber || fetchedTeam.teamCode} (${fetchedTeam.name}) is already assigned to Pool ${duplicate.pool} Slot #${duplicate.slot}. Each team can only be assigned once.`
+        `ALREADY ASSIGNED: Team #${fetchedTeam.teamNumber || fetchedTeam.teamCode} (${fetchedTeam.name}) is already assigned to Pool ${dupPool} Slot #${dupSlot}. Each team can only be assigned once.`
       );
       return;
     }
@@ -1657,121 +1664,229 @@ export function OfficialPoolBracket({
               {assignModalSlot.name ? "Edit / Reassign Slot" : "Enter Team Number to Fill Slot"}
             </h3>
 
-            {/* Input field */}
-            <div className="space-y-3">
-              <div>
-                <label className="font-pixel text-[10px] text-slate-400 uppercase tracking-wider block mb-1">
-                  ENTER TEAM # (1-101), TEAM CODE (e.g. TM-SZ-012), OR UNIVERSITY
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="e.g. 12 or TM-SZ-012 or Madras..."
-                    value={teamNumberInput}
-                    onChange={(e) => {
-                      setTeamNumberInput(e.target.value);
-                      searchTeam(e.target.value);
-                    }}
-                    autoFocus
-                    className={`w-full px-3.5 py-2.5 rounded-lg text-sm font-sans focus:outline-none transition-all ${
-                      isPaper
-                        ? "bg-slate-100 border border-slate-300 text-slate-900 focus:border-blue-600 focus:bg-white"
-                        : "bg-[#050A18] border border-[#1A2644] text-[#F4E6CE] focus:border-[#FF5A16] focus:bg-[#080F24]"
-                    }`}
-                  />
-                  {isFetchingTeam && (
-                    <RefreshCw className="w-4 h-4 text-[#FF5A16] animate-spin absolute right-3 top-3" />
-                  )}
-                </div>
-              </div>
+            {(() => {
+              const localAssignedSlot = fetchedTeam
+                ? (localSlots || []).find((s: any) => s.teamId === fetchedTeam.id)
+                : null;
+              const assignedPool = fetchedTeam?.assignedPool || localAssignedSlot?.pool;
+              const assignedSlot = fetchedTeam?.assignedSlot || localAssignedSlot?.slot;
+              const isAssigned = Boolean(fetchedTeam?.isAssigned || localAssignedSlot);
 
-              {/* Fetched Details Card */}
-              {fetchedTeam && (
-                <div
-                  className={`p-3.5 rounded-xl border space-y-2 text-xs transition-all ${
-                    isPaper
-                      ? "bg-blue-50 border-blue-200 text-slate-800"
-                      : "bg-[#0D1836] border-[#00F0FF]/30 text-[#E0E7FF]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-pixel text-xs font-bold text-[#FF5A16]">
-                      TEAM #{fetchedTeam.teamNumber || "-"} ({fetchedTeam.teamCode})
-                    </span>
-                    <span
-                      className={`font-pixel text-[9px] px-2 py-0.5 rounded uppercase font-bold ${
-                        fetchedTeam.isAssigned
-                          ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
-                          : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                      }`}
-                    >
-                      {fetchedTeam.isAssigned
-                        ? `Assigned (Pool ${fetchedTeam.assignedPool || "-"} Slot ${fetchedTeam.assignedSlot || "-"})`
-                        : "Available"}
-                    </span>
-                  </div>
+              const isSameSlot = Boolean(
+                isAssigned &&
+                assignedPool === activePool &&
+                assignedSlot === assignModalSlot.slot
+              );
+              const isAssignedElsewhere = Boolean(isAssigned && !isSameSlot);
 
-                  <div>
-                    <span className="font-pixel text-[10px] text-slate-400 uppercase block">UNIVERSITY</span>
-                    <strong className="text-sm font-bold block">{fetchedTeam.name}</strong>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200 dark:border-blue-900/40 font-sans">
+              return (
+                <>
+                  {/* Input field */}
+                  <div className="space-y-3">
                     <div>
-                      <span className="text-[10px] text-slate-400 font-pixel uppercase block">STATE</span>
-                      <span className="font-semibold">{fetchedTeam.state || "-"}</span>
+                      <label className="font-pixel text-[10px] text-slate-400 uppercase tracking-wider block mb-1">
+                        ENTER TEAM # (1-101), TEAM CODE (e.g. TM-SZ-012), OR UNIVERSITY
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="e.g. 12 or TM-SZ-012 or Madras..."
+                          value={teamNumberInput}
+                          onChange={(e) => {
+                            setTeamNumberInput(e.target.value);
+                            searchTeam(e.target.value);
+                          }}
+                          autoFocus
+                          className={`w-full px-3.5 py-2.5 rounded-lg text-sm font-sans focus:outline-none transition-all ${
+                            isAssignedElsewhere
+                              ? "bg-rose-950/25 border-2 border-rose-500 text-rose-100 placeholder:text-rose-400/50 focus:border-rose-400 focus:ring-1 focus:ring-rose-500"
+                              : isPaper
+                              ? "bg-slate-100 border border-slate-300 text-slate-900 focus:border-blue-600 focus:bg-white"
+                              : "bg-[#050A18] border border-[#1A2644] text-[#F4E6CE] focus:border-[#FF5A16] focus:bg-[#080F24]"
+                          }`}
+                        />
+                        {isFetchingTeam && (
+                          <RefreshCw className="w-4 h-4 text-[#FF5A16] animate-spin absolute right-3 top-3" />
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-pixel uppercase block">MANAGER</span>
-                      <span className="font-semibold truncate block">{fetchedTeam.managerName || "Registered"}</span>
+
+                    {/* Fetched Details Card */}
+                    {fetchedTeam && (
+                      <div
+                        className={`p-3.5 rounded-xl border space-y-2 text-xs transition-all ${
+                          isAssignedElsewhere
+                            ? isPaper
+                              ? "bg-rose-50 border-2 border-rose-400 text-rose-950 shadow-sm"
+                              : "bg-rose-950/30 border-2 border-rose-500/70 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,0.18)]"
+                            : isPaper
+                            ? "bg-blue-50 border-blue-200 text-slate-800"
+                            : "bg-[#0D1836] border-[#00F0FF]/30 text-[#E0E7FF]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`font-pixel text-xs font-bold ${
+                              isAssignedElsewhere ? "text-rose-400" : "text-[#FF5A16]"
+                            }`}
+                          >
+                            TEAM #{fetchedTeam.teamNumber || "-"} ({fetchedTeam.teamCode})
+                          </span>
+                          <span
+                            className={`font-pixel text-[9px] px-2.5 py-0.5 rounded uppercase font-bold inline-flex items-center gap-1.5 ${
+                              isAssignedElsewhere
+                                ? "bg-rose-500/20 text-rose-400 border border-rose-500/70 shadow-[0_0_8px_rgba(244,63,94,0.3)] animate-pulse"
+                                : isSameSlot
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                isAssignedElsewhere
+                                  ? "bg-rose-500 shadow-[0_0_6px_#f43f5e]"
+                                  : "bg-emerald-400"
+                              }`}
+                            />
+                            <span>
+                              {isAssignedElsewhere
+                                ? `ASSIGNED (POOL ${assignedPool || "-"} SLOT ${assignedSlot || "-"})`
+                                : isSameSlot
+                                ? `CURRENTLY IN THIS SLOT (POOL ${assignedPool || "-"} SLOT ${assignedSlot || "-"})`
+                                : "AVAILABLE"}
+                            </span>
+                          </span>
+                        </div>
+
+                        <div>
+                          <span
+                            className={`font-pixel text-[10px] uppercase block ${
+                              isAssignedElsewhere ? "text-rose-300/70" : "text-slate-400"
+                            }`}
+                          >
+                            UNIVERSITY
+                          </span>
+                          <strong
+                            className={`text-sm font-bold block ${
+                              isAssignedElsewhere ? "text-rose-100" : ""
+                            }`}
+                          >
+                            {fetchedTeam.name}
+                          </strong>
+                        </div>
+
+                        <div
+                          className={`grid grid-cols-2 gap-2 pt-1 border-t font-sans ${
+                            isAssignedElsewhere
+                              ? "border-rose-500/30 text-rose-200"
+                              : "border-slate-200 dark:border-blue-900/40 text-slate-300"
+                          }`}
+                        >
+                          <div>
+                            <span
+                              className={`text-[10px] font-pixel uppercase block ${
+                                isAssignedElsewhere ? "text-rose-300/70" : "text-slate-400"
+                              }`}
+                            >
+                              STATE
+                            </span>
+                            <span className="font-semibold">{fetchedTeam.state || "-"}</span>
+                          </div>
+                          <div>
+                            <span
+                              className={`text-[10px] font-pixel uppercase block ${
+                                isAssignedElsewhere ? "text-rose-300/70" : "text-slate-400"
+                              }`}
+                            >
+                              MANAGER
+                            </span>
+                            <span className="font-semibold truncate block">
+                              {fetchedTeam.managerName || "Registered"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Red Warning Banner when already assigned elsewhere */}
+                    {isAssignedElsewhere && fetchedTeam && (
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-500/15 border border-rose-500/60 text-rose-200 text-xs shadow-inner">
+                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+                        <div className="space-y-0.5">
+                          <span className="font-pixel text-[11px] font-bold text-rose-400 uppercase tracking-wide block">
+                            ALREADY ASSIGNED &bull; CANNOT ASSIGN AGAIN
+                          </span>
+                          <p className="font-sans text-[11.5px] text-rose-200/95 leading-tight">
+                            <strong>{fetchedTeam.name}</strong> is already placed in{" "}
+                            <strong className="text-white underline decoration-rose-400">
+                              POOL {assignedPool} &bull; SLOT #{assignedSlot}
+                            </strong>
+                            . Each university can only be assigned once. Clear their current slot first before moving them.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Error / Alert */}
+                    {assignError && (
+                      <div className="font-pixel text-xs text-rose-400 bg-rose-500/20 p-2.5 rounded-lg border border-rose-500/60 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span>{assignError}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div className="mt-5 flex items-center justify-between gap-2 border-t pt-4 border-slate-200 dark:border-blue-900/40">
+                    {assignModalSlot.teamId ? (
+                      <button
+                        type="button"
+                        onClick={handleUnassignSlot}
+                        disabled={isAssigning}
+                        className="px-3 py-2 bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/40 font-pixel text-xs font-bold uppercase rounded transition-colors"
+                      >
+                        CLEAR SLOT
+                      </button>
+                    ) : (
+                      <div />
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAssignModalSlot(null)}
+                        disabled={isAssigning}
+                        className="px-3.5 py-2 border rounded-lg font-pixel text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                      >
+                        CANCEL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleConfirmAssign}
+                        disabled={
+                          !fetchedTeam ||
+                          isAssigning ||
+                          isAssignedElsewhere ||
+                          (activePoolCount >= maxPoolCapacity && !assignModalSlot.teamId)
+                        }
+                        className={`px-4 py-2 font-pixel text-xs font-bold uppercase rounded shadow transition-all flex items-center gap-1.5 ${
+                          isAssignedElsewhere
+                            ? "bg-rose-900/60 border border-rose-500/60 text-rose-300 cursor-not-allowed opacity-90 shadow-[0_0_12px_rgba(244,63,94,0.2)]"
+                            : "bg-[#FF5A16] hover:bg-[#ff6a2d] disabled:opacity-50 text-black"
+                        }`}
+                      >
+                        {isAssigning && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                        {isAssignedElsewhere ? (
+                          <span>ALREADY IN POOL {assignedPool} &bull; SLOT #{assignedSlot}</span>
+                        ) : (
+                          <span>FILL SLOT #{assignModalSlot.slot}</span>
+                        )}
+                      </button>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Error / Alert */}
-              {assignError && (
-                <p className="font-pixel text-xs text-[#FF2A6D] bg-[#FF2A6D]/10 p-2.5 rounded border border-[#FF2A6D]/30">
-                  {assignError}
-                </p>
-              )}
-            </div>
-
-            {/* Modal Actions */}
-            <div className="mt-5 flex items-center justify-between gap-2 border-t pt-4 border-slate-200 dark:border-blue-900/40">
-              {assignModalSlot.teamId ? (
-                <button
-                  type="button"
-                  onClick={handleUnassignSlot}
-                  disabled={isAssigning}
-                  className="px-3 py-2 bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/40 font-pixel text-xs font-bold uppercase rounded transition-colors"
-                >
-                  CLEAR SLOT
-                </button>
-              ) : (
-                <div />
-              )}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAssignModalSlot(null)}
-                  disabled={isAssigning}
-                  className="px-3.5 py-2 border rounded-lg font-pixel text-xs text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  CANCEL
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmAssign}
-                  disabled={!fetchedTeam || isAssigning || (activePoolCount >= 25 && !assignModalSlot.teamId)}
-                  className="px-4 py-2 bg-[#FF5A16] hover:bg-[#ff6a2d] disabled:opacity-50 text-black font-pixel text-xs font-bold uppercase rounded shadow transition-all flex items-center gap-1.5"
-                >
-                  {isAssigning && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>FILL SLOT #{assignModalSlot.slot}</span>
-                </button>
-              </div>
-            </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
