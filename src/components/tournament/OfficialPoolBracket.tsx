@@ -96,6 +96,40 @@ export const ROUND_1_MATCH_SLOTS: Record<number, { slotA: number; slotB: number 
   8: { slotA: 22, slotB: 23 },
 };
 
+/**
+ * Truncates slot team text cleanly if it exceeds the available slot box width.
+ * Preserves the seed tag (e.g. [Seed #1]) and appends "..." to overflowing university names.
+ */
+function getTruncatedSlotLabel(
+  slotNum: number,
+  name: string,
+  state?: string,
+  seed?: number,
+  maxChars: number = 46
+): { display: string; full: string } {
+  const prefix = `${slotNum}. `;
+  const seedTag = seed ? ` [Seed #${seed}]` : "";
+  const fullBody = state ? `${name}, ${state}` : name;
+  const full = `${prefix}${fullBody}${seedTag}`;
+
+  if (full.length <= maxChars) {
+    return { display: full, full };
+  }
+
+  // Budget space for prefix, ellipsis "...", and seedTag
+  const reservedLen = prefix.length + seedTag.length + 3;
+  const availableBodyLen = Math.max(12, maxChars - reservedLen);
+
+  let truncatedBody = fullBody.slice(0, availableBodyLen).trim();
+  if (truncatedBody.endsWith(",") || truncatedBody.endsWith("-")) {
+    truncatedBody = truncatedBody.slice(0, -1).trim();
+  }
+  truncatedBody += "...";
+
+  const display = `${prefix}${truncatedBody}${seedTag}`;
+  return { display, full };
+}
+
 export function OfficialPoolBracket({
   initialPool = "A",
   liveMatches = [],
@@ -964,6 +998,21 @@ export function OfficialPoolBracket({
                 >
                   <path d="M 0 1 L 8 5 L 0 9 z" fill={colors.lineColor} />
                 </marker>
+
+                {/* Clip paths for slot boxes ensuring text NEVER overflows the right border */}
+                {currentRoster.map((t) => {
+                  const y = getSlotY(t.slot);
+                  return (
+                    <clipPath key={`clip-${t.slot}`} id={`slot-clip-${t.slot}`}>
+                      <rect
+                        x={config.startX + 2}
+                        y={y}
+                        width={config.slotWidth - 14}
+                        height={config.slotHeight}
+                      />
+                    </clipPath>
+                  );
+                })}
               </defs>
 
               {/* ── 1. DRAW TEAM SLOTS (1 TO 30) ── */}
@@ -1017,32 +1066,50 @@ export function OfficialPoolBracket({
                       className="transition-colors"
                     />
 
-                    {/* Team slot text */}
-                    {isAssigned ? (
-                      <text
-                        x={config.startX + 10}
-                        y={centerY + 5}
-                        fill={isHovered ? colors.highlightLine : isPaper ? "#14532D" : "#05D550"}
-                        fontSize="13.5"
-                        fontWeight="800"
-                        fontFamily="Arial, Helvetica, sans-serif"
-                        letterSpacing="0.2px"
-                      >
-                        {globalSlot(t.slot)}. {t.name}{t.state ? `, ${t.state}` : ""}{t.seed ? ` [Seed #${t.seed}]` : ""}
-                      </text>
-                    ) : (
-                      <text
-                        x={config.startX + 10}
-                        y={centerY + 5}
-                        fill={isHovered ? colors.highlightLine : isPaper ? "#1E293B" : "#94A3B8"}
-                        fontSize="13"
-                        fontWeight="700"
-                        fontFamily="Arial, Helvetica, sans-serif"
-                        letterSpacing="0.2px"
-                      >
-                        {globalSlot(t.slot)}. {t.seed ? `[Seed #${t.seed} Bye] ` : t.isByeR1 ? `[R1 Bye] ` : ""}{isHovered ? "── Click to assign ──" : "──"}
-                      </text>
-                    )}
+                    {/* Team slot text with smart ellipsis truncation and full title tooltip */}
+                    {isAssigned ? (() => {
+                      const label = getTruncatedSlotLabel(
+                        globalSlot(t.slot),
+                        t.name,
+                        t.state,
+                        t.seed,
+                        46
+                      );
+                      return (
+                        <text
+                          x={config.startX + 10}
+                          y={centerY + 5}
+                          fill={isHovered ? colors.highlightLine : isPaper ? "#14532D" : "#05D550"}
+                          fontSize="13.5"
+                          fontWeight="800"
+                          fontFamily="Arial, Helvetica, sans-serif"
+                          letterSpacing="0.2px"
+                          clipPath={`url(#slot-clip-${t.slot})`}
+                        >
+                          <title>{label.full}</title>
+                          {label.display}
+                        </text>
+                      );
+                    })() : (() => {
+                      const byeLabel = `${globalSlot(t.slot)}. ${
+                        t.seed ? `[Seed #${t.seed} Bye] ` : t.isByeR1 ? `[R1 Bye] ` : ""
+                      }${isHovered ? "── Click to assign ──" : "──"}`;
+                      return (
+                        <text
+                          x={config.startX + 10}
+                          y={centerY + 5}
+                          fill={isHovered ? colors.highlightLine : isPaper ? "#1E293B" : "#94A3B8"}
+                          fontSize="13"
+                          fontWeight="700"
+                          fontFamily="Arial, Helvetica, sans-serif"
+                          letterSpacing="0.2px"
+                          clipPath={`url(#slot-clip-${t.slot})`}
+                        >
+                          <title>{byeLabel}</title>
+                          {byeLabel}
+                        </text>
+                      );
+                    })()}
 
                     {/* Horizontal stub: seed→final, R1 byes→R2, others→R1 */}
                     <line
