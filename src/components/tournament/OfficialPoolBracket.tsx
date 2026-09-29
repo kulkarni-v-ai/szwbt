@@ -571,19 +571,19 @@ export function OfficialPoolBracket({
   // Geometry configuration
   const config = {
     topPadding: 50,
-    slotHeight: 28,
+    slotHeight: 32,
     slotGap: 8,
-    slotWidth: 430,
+    slotWidth: 460,
     startX: 30,
-    r1ColX: 480,
-    r2ColX: 545,
-    r3ColX: 610,
-    r4ColX: 675,
-    r5ColX: 740,
-    finalColX: 845,
-    endArrowX: 895,
-    badgeW: 26,
-    badgeH: 18,
+    r1ColX: 520,
+    r2ColX: 595,
+    r3ColX: 670,
+    r4ColX: 745,
+    r5ColX: 820,
+    finalColX: 940,
+    endArrowX: 1000,
+    badgeW: 34,
+    badgeH: 24,
   };
 
   const pitch = config.slotHeight + config.slotGap;
@@ -908,18 +908,18 @@ export function OfficialPoolBracket({
           )}
 
           {/* Explanation badge — A/C: 26 slots/26 rows, B/D: 25 slots/25 rows */}
-          <div className="w-full mt-2 p-2.5 bg-[#070D1E] border border-[#00F0FF]/30 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 bg-[#00F0FF] text-black font-pixel text-[10px] font-bold rounded">
+          <div className="w-full mt-2 p-3 bg-[#070D1E] border border-[#00F0FF]/40 rounded-xl flex flex-wrap items-center justify-between gap-2.5 text-xs sm:text-sm">
+            <div className="flex items-center gap-2.5">
+              <span className="px-2.5 py-1 bg-[#00F0FF] text-black font-pixel text-xs font-black rounded uppercase">
                 {isACPool ? "26" : "25"} SLOTS — POOL {activePool}
               </span>
-              <span className="text-slate-300 font-sans text-xs">
+              <span className="text-slate-200 font-sans text-xs sm:text-[13px] font-medium">
                 {isACPool
-                  ? <>Pool {activePool}: <strong>26 team slots</strong> — 9 R1 matches + 7 R1 byes + 1 seed → 16 into R2 → 8 R2 → 4 QF → 2 SF → CF → Final.</>  
-                  : <>Pool {activePool}: <strong>25 team slots</strong> — 8 R1 matches + 8 R1 byes + 1 seed → 16 into R2 → 8 R2 → 4 QF → 2 SF → CF → Final.</>}
+                  ? <>Pool {activePool}: <strong className="text-white">26 team slots</strong> — 9 R1 matches + 7 R1 byes + 1 seed → 16 into R2 → 8 R2 → 4 QF → 2 SF → CF → Final.</>  
+                  : <>Pool {activePool}: <strong className="text-white">25 team slots</strong> — 8 R1 matches + 8 R1 byes + 1 seed → 16 into R2 → 8 R2 → 4 QF → 2 SF → CF → Final.</>}
               </span>
             </div>
-            <span className="font-pixel text-[10px] text-[#05D550]">
+            <span className="font-pixel text-xs sm:text-[13px] font-black text-[#05D550]">
               TOTAL: 102 UNIVERSITIES ACROSS 4 POOLS
             </span>
           </div>
@@ -1016,11 +1016,11 @@ export function OfficialPoolBracket({
                     {/* Team slot text */}
                       {isAssigned ? (
                       <text
-                        x={config.startX + 8}
-                        y={centerY + 4}
+                        x={config.startX + 10}
+                        y={centerY + 5}
                         fill={isHovered ? colors.highlightLine : colors.textPrimary}
-                        fontSize="11.5"
-                        fontWeight="700"
+                        fontSize="13.5"
+                        fontWeight="800"
                         fontFamily="Arial, Helvetica, sans-serif"
                         letterSpacing="0.2px"
                       >
@@ -1028,11 +1028,11 @@ export function OfficialPoolBracket({
                       </text>
                     ) : (
                       <text
-                        x={config.startX + 8}
-                        y={centerY + 4}
-                        fill={isHovered ? colors.highlightLine : isPaper ? "#64748B" : "#475569"}
-                        fontSize="11"
-                        fontWeight="600"
+                        x={config.startX + 10}
+                        y={centerY + 5}
+                        fill={isHovered ? colors.highlightLine : isPaper ? "#1E293B" : "#94A3B8"}
+                        fontSize="13"
+                        fontWeight="700"
                         fontFamily="Arial, Helvetica, sans-serif"
                         letterSpacing="0.2px"
                       >
@@ -1092,7 +1092,7 @@ export function OfficialPoolBracket({
                     {/* Match number box badge */}
                     {renderMatchBadge(
                       m,
-                      config.r1ColX + 18,
+                      config.r1ColX + 28,
                       midY,
                       "Round 1",
                       colors,
@@ -1149,7 +1149,7 @@ export function OfficialPoolBracket({
                     {/* Match number box badge */}
                     {renderMatchBadge(
                       m,
-                      config.r2ColX + 22,
+                      config.r2ColX + 28,
                       midY,
                       "Round 2",
                       colors,
@@ -1190,7 +1190,7 @@ export function OfficialPoolBracket({
                     />
                     {renderMatchBadge(
                       m,
-                      config.r3ColX + 22,
+                      config.r3ColX + 28,
                       midY,
                       "Pool Quarter-Final",
                       colors,
@@ -1229,7 +1229,7 @@ export function OfficialPoolBracket({
                     />
                     {renderMatchBadge(
                       m,
-                      config.r4ColX + 22,
+                      config.r4ColX + 28,
                       midY,
                       "Pool Semi-Final",
                       colors,
@@ -1266,7 +1266,7 @@ export function OfficialPoolBracket({
                     />
                     {renderMatchBadge(
                       m,
-                      config.r5ColX + 26,
+                      config.r5ColX + 40,
                       midY,
                       "Challenger Final",
                       colors,
@@ -1309,7 +1309,7 @@ export function OfficialPoolBracket({
                     {/* Pool Final Match Box Badge [113] */}
                     {renderMatchBadge(
                       m,
-                      config.finalColX + 30,
+                      config.finalColX + 40,
                       midY,
                       "Pool Championship Final (All-India Qualifier)",
                       colors,
@@ -1720,8 +1720,8 @@ function renderMatchBadge(
   onClick: (matchNum: number, roundName: string) => void,
   isSpecialFinal = false
 ) {
-  const badgeWidth = isSpecialFinal ? 38 : 30;
-  const badgeHeight = 20;
+  const badgeWidth = isSpecialFinal ? 46 : 36;
+  const badgeHeight = 24;
 
   return (
     <g
@@ -1734,7 +1734,7 @@ function renderMatchBadge(
         y={y - badgeHeight / 2}
         width={badgeWidth}
         height={badgeHeight}
-        rx={3}
+        rx={4}
         fill={colors.badgeBg}
         stroke={isSpecialFinal ? "#FF5A16" : colors.badgeBorder}
         strokeWidth={1.5}
@@ -1744,11 +1744,11 @@ function renderMatchBadge(
       {/* Match number text */}
       <text
         x={x}
-        y={y + 4}
+        y={y + 5}
         textAnchor="middle"
         fill={isSpecialFinal ? "#FF5A16" : colors.badgeText}
-        fontSize="11"
-        fontWeight="800"
+        fontSize="13"
+        fontWeight="900"
         fontFamily="Arial, Helvetica, sans-serif"
       >
         {matchNum}
